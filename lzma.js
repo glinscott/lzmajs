@@ -508,3 +508,5 @@ LZMA.decompress = function(properties, inStream, outStream, outSize){
 
   return true;
 };
+
+exports.LZMA = LZMA;
