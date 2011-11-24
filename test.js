@@ -54,21 +54,27 @@ var testBitEncoder = function() {
 		bitEncoder.encode(rangeEncoder, testSequence[i]);
 	}
 	rangeEncoder.finish();
-	console.log(rangeEncoder.bytes);
-	
+	assert.deepEqual(rangeEncoder.bytes, [ 0, 249, 223, 15, 188 ]);
+
 	rangeEncoder = new RangeCoder.Encoder();
-	var bitTreeEncoder = new BitEncoder.BitTreeEncoder(3);
+	var bitTreeEncoder = new BitEncoder.BitTreeEncoder(5);
 	bitTreeEncoder.init();
 	for (var i = 0; i < testSequence.length; i++) {
 		bitTreeEncoder.encode(rangeEncoder, testSequence[i]);
 	}
-	console.log(rangeEncoder.bytes);
-	
-	var bitTreeDecoder = new LzmaDecompress.LZMA.BitTreeDecoder(3);
+	rangeEncoder.finish();
+
+	var bitTreeDecoder = new LzmaDecompress.LZMA.BitTreeDecoder(5);
+	bitTreeDecoder.init();
 	var rangeDecoder = new LzmaDecompress.LZMA.RangeDecoder();
 	rangeDecoder.setStream(createInStream(rangeEncoder.bytes));
+	rangeDecoder.init();
 
-	console.log(bitTreeDecoder.decode(rangeDecoder));
+	var result = [];
+	for (var i = 0; i < testSequence.length; i++) {
+		result[result.length] = bitTreeDecoder.decode(rangeDecoder);
+	}
+	assert.deepEqual(result, testSequence);
 };
 
 var start = new Date();
