@@ -18,9 +18,13 @@ function Encoder() {
 			this.index = 0;
 		};
 		this.updateChar = function() {
-			if (this.index < 4) this.index = 0;
-			else if (this.index < 10) this.index -= 3;
-			else this.index -= 6;
+			if (this.index < 4) {
+				this.index = 0;
+			} else if (this.index < 10) {
+				this.index -= 3;
+			} else {
+				this.index -= 6;
+			}
 		};
 		this.updateMatch = function() {
 			this.index = this.index < 7 ? 7 : 10;
@@ -39,42 +43,48 @@ function Encoder() {
 	this.fastPos = [];
 
 	this.init = function() {
-		var fastSlots = 22;
-		var c = 2;
+		var fastSlots = 22, c = 2, slotFast;
 		this.fastPos[0] = 0;
 		this.fastPos[1] = 1;
-		for (var slotFast = 2; slotFast < kFastSlots; slotFast++) {
-			var k = 1 << ((slotFast >> 1) - 1);
-			for (var j = 0; j < k; j++,c++)
+		for (slotFast = 2; slotFast < kFastSlots; slotFast++) {
+			var j, k = 1 << ((slotFast >> 1) - 1);
+			for (j = 0; j < k; j++,c++) {
 				this.fastPos[c] = slotFast;
+			}
 		}
 	};
 	
 	this.getPosSlot = function(pos) {
-		if (pos < (1 << 11))
+		if (pos < (1 << 11)) {
 			return this.fastPos[pos];
-		if (pos < (1 << 21))
+		}
+		if (pos < (1 << 21)) {
 			return this.fastPos[pos >>> 10] + 20;
+		}
 		return this.fastPos[pos >>> 20] + 40;
 	};
 	
 	this.getPosSlot2 = function(pos) {
-		if (pos < (1 << 17))
+		if (pos < (1 << 17)) {
 			return this.fastPos[pos >>> 6] + 12;
-		if (pos < (1 << 27))
+		}
+		if (pos < (1 << 27)) {
 			return this.fastPos[pos >>> 16] + 32;
+		}
 		return this.fastPos[pos >>> 26] + 52;
 	};
 	
-	var state = new this.state;
+	var state = new this.State();
 	var previousByte;
 	var repDistances = [];
 	
 	var baseInit = function() {
+		var i;
 		state.init();
 		previousByte = 0;
-		for (var i = 0; i < kNumRepDistances; i++)
+		for (i = 0; i < kNumRepDistances; i++) {
 			repDistances[i] = 0;
+		}
 	};
 	
 	this.LiteralEncoder = function() {
@@ -82,19 +92,23 @@ function Encoder() {
 			var encoders;
 			
 			this.create = function() {
+				var i;
 				encoders = [];
-				for (var i = 0; i < 0x300; i++)
+				for (i = 0; i < 0x300; i++) {
 					encoders[i] = new BitEncoder();
+				}
 			};
 			
 			this.init = function() {
-				for (var i = 0; i < 0x300; i++)
+				var i;
+				for (i = 0; i < 0x300; i++) {
 					encoders[i].Init();
+				}
 			};
 			
 			this.encode = function(rangeEncoder, symbol) {
-				var context = 1;
-				for (var i = 7; i >= 0; i--) {
+				var context = 1, i;
+				for (i = 7; i >= 0; i--) {
 					var bit = (symbol >>> i) & 1;
 					encoders[context].Encode(rangeEncoder, bit);
 					context = (context << 1) | bit;
@@ -102,15 +116,14 @@ function Encoder() {
 			};
 			
 			this.encodeMatched = function(rangeEncoder, matchByte, symbol) {
-				var context = 1;
-				var same = true;
-				for (var i = 7; i>= 0; i--) {
+				var context = 1, same = true, i;
+				for (i = 7; i>= 0; i--) {
 					var bit = (symbol >> i) & 1;
 					var state = context;
 					if (same) {
 						var matchBit = (matchByte >>> i) & 1;
 						state += (1 + matchBit) << 8;
-						same = (matchBit == bit);
+						same = (matchBit === bit);
 					}
 					encoders[state].Encode(rangeEncoder, bit);
 					context = (context << 1) | bit;
@@ -121,20 +134,21 @@ function Encoder() {
 				var price = 0;
 				var context = 1;
 				var i = 7;
+				var bit, matchBit;
 				if (matchMode) {
 					for (; i >= 0; i--) {
-						var matchBit = (matchByte >>> i) & 1;
-						var bit = (symbol >>> i) & 1;
+						matchBit = (matchByte >>> i) & 1;
+						bit = (symbol >>> i) & 1;
 						price += encoders[((1 + matchBit) << 8) + context].GetPrice(bit);
 						context = (context << 1) | bit;
-						if (matchBit != bit) {
+						if (matchBit !== bit) {
 							i--;
 							break;
 						}
 					}
 				}
 				for (; i >= 0; i--) {
-					var bit = (symbol >>> i) & 1;
+					bit = (symbol >>> i) & 1;
 					price += encoders[context].GetPrice(bit);
 					context = (context << 1) | bit;
 				}
@@ -146,23 +160,26 @@ function Encoder() {
 		var _numPrevBits = -1, _numPosBits = -1, posMask;
 		
 		this.create = function(numPosBits, numPrevBits) {
-			if (_numPrevBits == numPrevBits & _numPosBits == numPosBits)
+			var i;
+			if (_numPrevBits === numPrevBits & _numPosBits === numPosBits) {
 				return;
+			}
 				
 			_numPosBits = numPosBits;
 			_posMask = (1 << numPosBits) - 1;
 			_numPrevBits = numPrevBits;
 			var numStates = 1 << (_numPrevBits + _numPosBits);
-			for (var i = 0; i < numStates; i++) {
+			for (i = 0; i < numStates; i++) {
 				coders[i] = new Encoder2();
 				coders[i].create();
 			}
 		};
 		
 		this.init = function() {
-			var numStates = 1 << (_numPrevBits + _numPosBits);
-			for (var i = 0; i < numStates; i++)
+			var numStates = 1 << (_numPrevBits + _numPosBits), i;
+			for (i = 0; i < numStates; i++) {
 				coders[i].init();
+			}
 		};
 		
 		this.getSubCoder = function(pos, prevByte) {
@@ -175,8 +192,9 @@ function Encoder() {
 		var choice2 = new BitEncoder();
 		var lowCoder = [], midCoder = [];
 		var highCoder = new BitTreeEncoder(kNumHighLenBits);
+		var posState;
 		
-		for (var posState = 0; posState < kumPosStatesEncodingMax; posState++) {
+		for (posState = 0; posState < kumPosStatesEncodingMax; posState++) {
 			lowCoder[posState] = new BitTreeEncoder(kNumLowLenBits);
 			midCoder[posState] = new BitTreeEncoder(kNumMidLenBits);
 		}
@@ -184,7 +202,7 @@ function Encoder() {
 		this.init = function(numPosStates) {
 			choice.Init();
 			choice2.Init();
-			for (var posState = 0; posState < numPosStates; posState++) {
+			for (posState = 0; posState < numPosStates; posState++) {
 				lowCoder[posState].init();
 				midCoder[posState].init();
 			}
@@ -215,17 +233,20 @@ function Encoder() {
 			var b1 = a1 + choice2.getPrice1();
 			var i;
 			for (i = 0; i < kNumLowLenSymbols; i++) {
-				if (i >= numSymbols)
+				if (i >= numSymbols) {
 					return;
+				}
 				prices[st + i] = a0 + lowCoder[posState].getPrice(i);
 			}
 			for (; i < kNumLowLenSymbols + kNumMidLenSymbols; i++) {
-				if (i >= numSymbols)
+				if (i >= numSymbols) {
 					return;
+				}
 				prices[st + i] = b0 + midCoder[posState].getPrice(i - kNumLowLenSymbols);
 			}
-			for (; i < numSymbols; i++)
+			for (; i < numSymbols; i++) {
 				prices[st + i] = b1 + highCoder.getPrice(i - kNumLowLenSymbols - kNumMidLenSymbols);
+			}
 		};
 	};
 	
@@ -233,12 +254,12 @@ function Encoder() {
 	
 	this.LenPriceTableEncoder = function() {
 		
-	}
+	};
 	
 	this.code = function() {
 		var progressPosValuePrev = nowPos;
-		if (nowPos == 0) {
-			if (matchFinder.getNumAvailableBytes() == 0) {
+		if (nowPos === 0) {
+			if (matchFinder.getNumAvailableBytes() === 0) {
 				this.flush(nowPos);
 				return;
 			}
@@ -248,4 +269,4 @@ function Encoder() {
 			
 		}
 	};
-};
+}
