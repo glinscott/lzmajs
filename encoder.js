@@ -14,7 +14,6 @@ function Encoder() {
 	var kMatchMaxLen = kMatchMinLen + kNumLenSymbols - 1;
 
 	this.State = function() {
-		var index;
 		this.init = function() {
 			this.index = 0;
 		};
@@ -37,8 +36,8 @@ function Encoder() {
 		};
 	};
 	
-	var fastPos = [];
-	
+	this.fastPos = [];
+
 	this.init = function() {
 		var fastSlots = 22;
 		var c = 2;
@@ -167,7 +166,7 @@ function Encoder() {
 		};
 		
 		this.getSubCoder = function(pos, prevByte) {
-			return this.coders[((pos & posMask) << _numPrevBits) + (prevByte >> (8 - _numPrevBits))];
+			return coders[((pos & posMask) << _numPrevBits) + (prevByte >> (8 - _numPrevBits))];
 		};
 	};
 	
