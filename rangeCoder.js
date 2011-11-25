@@ -3,7 +3,7 @@ var kTopValue = 1 << 24, kBotValue = 1 << 16;
 function shiftLeft8(v) {
 	v <<= 8;
 	return v >= 0 ? v : v + 0x100000000;
-};
+}
 
 function Encoder() {
 	var low = 0, range = 0xFFFFFFFF;
@@ -21,29 +21,31 @@ function Encoder() {
 	};
 
 	this.shiftLow = function() {
-		var overflow = false;
-		if (low < 0xFF000000 || (overflow = low > 0xFFFFFFFF)) {
+		var overflow = low > 0xFFFFFFFF;
+		if (low < 0xFF000000 || overflow) {
 			var temp = cache;
 			do {
 				this.bytes[this.bytes.length] = (temp + (overflow ? 1 : 0)) & 0xFF;
 				temp = 0xFF;
-			} while (--cacheSize != 0);
+			} while (--cacheSize !== 0);
 			cache = low >>> 24;
 		}
 		cacheSize++;
 		low = shiftLeft8(low);
-	}
+	};
 	
 	this.finish = function() {
-		for (var i = 0; i < 5; i++)
+		var i;
+		for (i = 0; i < 5; i++) {
 			this.shiftLow();
+		}
 	};
 
 	this.encodeBit = function(size, numTotalBits, symbol) {
 		var newBound = (range >>> numTotalBits) * size;
-		if (symbol == 0)
+		if (symbol === 0) {
 			range = newBound;
-		else {
+		} else {
 			low += newBound;
 			range -= newBound;
 		}
@@ -66,15 +68,17 @@ function Encoder() {
 		}
 	};
 */	
-};
+}
 
 function Decoder(bytes) {
 	var code = 0, range = 0xFFFFFFFF;
 	var at = 0;
+	var i;
 	this.bytes = bytes;
 	
-	for (var i = 0; i < 5; i++)
+	for (i = 0; i < 5; i++) {
 		code = (code << 8) | this.bytes[at++];
+	}
 
 	this.normalize = function() {
 		while (range < kTopValue) {
@@ -93,7 +97,7 @@ function Decoder(bytes) {
 		range *= size;
 		this.normalize();
 	};
-};
+}
 
 exports.Encoder = Encoder;
 exports.Decoder = Decoder;

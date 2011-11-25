@@ -15,10 +15,11 @@ var createInStream = function(data) {
 };
 
 var testRangeCoder = function() {
+	var i;
 //	var repeats = 100000;
 	var repeats = 3;
 	var encoder = new RangeCoder.Encoder();
-	for (var i = 0; i < repeats; i++) {
+	for (i = 0; i < repeats; i++) {
 		encoder.encode(0,6,20);
 		encoder.encode(0,6,20);
 		encoder.encode(6,2,20);
@@ -31,7 +32,7 @@ var testRangeCoder = function() {
 	var inside = function(l, r, v) {
 		assert.ok(v >= l && v < r, v + ' not in ' + l + ',' + r);
 	};
-	for (var i = 0; i < repeats; i++) {
+	for (i = 0; i < repeats; i++) {
 		inside(0, 6, decoder.getThreshold(20));
 		decoder.decode(0,6,20);
 		inside(0, 6, decoder.getThreshold(20));
@@ -44,14 +45,15 @@ var testRangeCoder = function() {
 	inside(8, 10, decoder.getThreshold(20));
 };
 
-var testBitEncoder = function(testSequence) {
+var testBitEncoder = function() {
 	// Simple test for the bit encoder
 	var testSequence = [5, 1, 9, 8, 10, 15];
+	var i;
 	
 	var bitEncoder = new BitEncoder.BitEncoder();
 	var rangeEncoder = new RangeCoder.Encoder();
 	bitEncoder.init();
-	for (var i = 0; i < testSequence.length; i++) {
+	for (i = 0; i < testSequence.length; i++) {
 		bitEncoder.encode(rangeEncoder, testSequence[i]);
 	}
 	rangeEncoder.finish();
@@ -60,10 +62,12 @@ var testBitEncoder = function(testSequence) {
 
 var testBitTreeEncoder = function(testSequence) {
 	// Test the BitTreeEncoder, using LZMA.js decompression for verification
-	rangeEncoder = new RangeCoder.Encoder();
+	var i;
+	
+	var rangeEncoder = new RangeCoder.Encoder();
 	var bitTreeEncoder = new BitEncoder.BitTreeEncoder(8);
 	bitTreeEncoder.init();
-	for (var i = 0; i < testSequence.length; i++) {
+	for (i = 0; i < testSequence.length; i++) {
 		bitTreeEncoder.encode(rangeEncoder, testSequence[i]);
 	}
 	rangeEncoder.finish();
@@ -75,7 +79,7 @@ var testBitTreeEncoder = function(testSequence) {
 	rangeDecoder.init();
 
 	var result = [];
-	for (var i = 0; i < testSequence.length; i++) {
+	for (i = 0; i < testSequence.length; i++) {
 		result[result.length] = bitTreeDecoder.decode(rangeDecoder);
 	}
 	assert.deepEqual(result, testSequence);
