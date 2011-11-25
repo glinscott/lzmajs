@@ -6,8 +6,7 @@ function BitEncoder() {
 	var kNumBitPriceShiftBits = 6;
 	
 	var prob;
-	var probPrices = [];
-	
+
 	this.init = function() {
 		prob = kBitModelTotal >> 1;
 	};
@@ -29,21 +28,23 @@ function BitEncoder() {
 		return this.probPrices[priceIndex >>> kNumMoveReducingBits];
 	};
 	
-	var initializeProbPrices = function() {
+	this.initializeProbPrices = function() {
 		var kNumBits = kNumBitModelTotalBits - kNumMoveReducingBits;
 		for (var i = kNumBits - 1; i >= 0; i--) {
 			var start = 1 << (kNumBits - i - 1);
 			var end = 1 << (kNumBits - i);
 			for (var j = start; j < end; j++)
-				probPrices[j] = (i << kNumBitPriceShiftBits) +
+				this.probPrices[j] = (i << kNumBitPriceShiftBits) +
 					(((end - j) << kNumBitPriceShiftBits) >>> (kNumBits - i - 1));
 		}
 	};
-	
+
 	// TODO: make this statically initialized
-	if (probPrices.length == 0)
-		initializeProbPrices();
+	if (this.probPrices.length == 0)
+		this.initializeProbPrices();
 };
+
+BitEncoder.prototype.probPrices = [];
 
 function BitTreeEncoder(numBitLevels) {
 	this.models = [];
