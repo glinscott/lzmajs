@@ -44,7 +44,8 @@ var testRangeCoder = function() {
 	inside(8, 10, decoder.getThreshold(20));
 };
 
-var testBitEncoder = function() {
+var testBitEncoder = function(testSequence) {
+	// Simple test for the bit encoder
 	var testSequence = [5, 1, 9, 8, 10, 15];
 	
 	var bitEncoder = new BitEncoder.BitEncoder();
@@ -55,16 +56,19 @@ var testBitEncoder = function() {
 	}
 	rangeEncoder.finish();
 	assert.deepEqual(rangeEncoder.bytes, [ 0, 249, 223, 15, 188 ]);
+};
 
+var testBitTreeEncoder = function(testSequence) {
+	// Test the BitTreeEncoder, using LZMA.js decompression for verification
 	rangeEncoder = new RangeCoder.Encoder();
-	var bitTreeEncoder = new BitEncoder.BitTreeEncoder(5);
+	var bitTreeEncoder = new BitEncoder.BitTreeEncoder(8);
 	bitTreeEncoder.init();
 	for (var i = 0; i < testSequence.length; i++) {
 		bitTreeEncoder.encode(rangeEncoder, testSequence[i]);
 	}
 	rangeEncoder.finish();
 
-	var bitTreeDecoder = new LzmaDecompress.LZMA.BitTreeDecoder(5);
+	var bitTreeDecoder = new LzmaDecompress.LZMA.BitTreeDecoder(8);
 	bitTreeDecoder.init();
 	var rangeDecoder = new LzmaDecompress.LZMA.RangeDecoder();
 	rangeDecoder.setStream(createInStream(rangeEncoder.bytes));
@@ -80,4 +84,7 @@ var testBitEncoder = function() {
 var start = new Date();
 testRangeCoder();
 testBitEncoder();
+
+var testSequence = [5, 112, 90, 8, 10, 153, 255, 0, 1];
+testBitTreeEncoder(testSequence);
 console.log(new Date() - start);
