@@ -15,6 +15,11 @@ function Encoder() {
 	var kNumLenSymbols = kNumLowLenSymbols + kNumMidLenSymbols + (1 << kNumHighLenBits);
 	var kMatchMinLen = 2;
 	var kMatchMaxLen = kMatchMinLen + kNumLenSymbols - 1;
+	
+	var kNumPosStatesBitsMax = 4;
+	var kNumPosStatesMax = 1 << kNumPosStatesBitsMax;
+	var kNumPosStatesBitsEncodingMax = 4;
+	var kNumPosStatesEncodingMax = 1 << kNumPosStatesBitsEncodingMax;
 
 	this.State = function() {
 		this.init = function() {
@@ -46,7 +51,7 @@ function Encoder() {
 	this.fastPos = [];
 
 	this.init = function() {
-		var fastSlots = 22, c = 2, slotFast;
+		var kFastSlots = 22, c = 2, slotFast;
 		this.fastPos[0] = 0;
 		this.fastPos[1] = 1;
 		for (slotFast = 2; slotFast < kFastSlots; slotFast++) {
@@ -105,7 +110,7 @@ function Encoder() {
 			this.init = function() {
 				var i;
 				for (i = 0; i < 0x300; i++) {
-					encoders[i].Init();
+					encoders[i].init();
 				}
 			};
 			
@@ -173,7 +178,7 @@ function Encoder() {
 			_numPrevBits = numPrevBits;
 			var numStates = 1 << (_numPrevBits + _numPosBits);
 			for (i = 0; i < numStates; i++) {
-				coders[i] = new Encoder2();
+				coders[i] = new this.Encoder2();
 				coders[i].create();
 			}
 		};
@@ -184,7 +189,7 @@ function Encoder() {
 				coders[i].init();
 			}
 		};
-		
+
 		this.getSubCoder = function(pos, prevByte) {
 			return coders[((pos & posMask) << _numPrevBits) + (prevByte >> (8 - _numPrevBits))];
 		};
@@ -197,14 +202,14 @@ function Encoder() {
 		var highCoder = new BitEncoder.BitTreeEncoder(kNumHighLenBits);
 		var posState;
 		
-		for (posState = 0; posState < kumPosStatesEncodingMax; posState++) {
+		for (posState = 0; posState < kNumPosStatesEncodingMax; posState++) {
 			lowCoder[posState] = new BitEncoder.BitTreeEncoder(kNumLowLenBits);
 			midCoder[posState] = new BitEncoder.BitTreeEncoder(kNumMidLenBits);
 		}
 		
 		this.init = function(numPosStates) {
-			choice.Init();
-			choice2.Init();
+			choice.init();
+			choice2.init();
 			for (posState = 0; posState < numPosStates; posState++) {
 				lowCoder[posState].init();
 				midCoder[posState].init();
@@ -285,7 +290,7 @@ function Encoder() {
 		};
 	};
 
-	this.LenPriceTableEncoder.prototype = this.LenEncoder;
+	this.LenPriceTableEncoder.prototype = new this.LenEncoder();
 	
 	this.code = function() {
 		var progressPosValuePrev = nowPos;

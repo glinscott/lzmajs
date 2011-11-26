@@ -110,7 +110,17 @@ var buildSequence = function(length, maxVal) {
 
 var testEncoder = function() {
 	var encoder = new Encoder.Encoder();
+	encoder.init();
 	
+	var literalEncoder = new encoder.LiteralEncoder();
+	literalEncoder.create(2, 3);
+	literalEncoder.init();
+	
+	var lenEncoder = new encoder.LenEncoder();
+	lenEncoder.init();
+	
+	var lenPriceTableEncoder = new encoder.LenPriceTableEncoder();
+	lenPriceTableEncoder.init();
 };
 
 var runAllTests = function() {
