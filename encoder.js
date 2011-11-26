@@ -1,3 +1,5 @@
+var BitEncoder = require('./bitEncoder');
+
 function Encoder() {
 	var kInfinityPrice = 0xFFFFFFF;
 	var kNumRepDistances = 4;
@@ -11,6 +13,7 @@ function Encoder() {
 	var kNumLowLenSymbols = 1 << kNumLowLenBits;
 	var kNumMidLenSymbols = 1 << kNumMidLenBits;
 	var kNumLenSymbols = kNumLowLenSymbols + kNumMidLenSymbols + (1 << kNumHighLenBits);
+	var kMatchMinLen = 2;
 	var kMatchMaxLen = kMatchMinLen + kNumLenSymbols - 1;
 
 	this.State = function() {
@@ -95,7 +98,7 @@ function Encoder() {
 				var i;
 				encoders = [];
 				for (i = 0; i < 0x300; i++) {
-					encoders[i] = new BitEncoder();
+					encoders[i] = new BitEncoder.BitEncoder();
 				}
 			};
 			
@@ -188,15 +191,15 @@ function Encoder() {
 	};
 	
 	this.LenEncoder = function() {
-		var choice = new BitEncoder();
-		var choice2 = new BitEncoder();
+		var choice = new BitEncoder.BitEncoder();
+		var choice2 = new BitEncoder.BitEncoder();
 		var lowCoder = [], midCoder = [];
-		var highCoder = new BitTreeEncoder(kNumHighLenBits);
+		var highCoder = new BitEncoder.BitTreeEncoder(kNumHighLenBits);
 		var posState;
 		
 		for (posState = 0; posState < kumPosStatesEncodingMax; posState++) {
-			lowCoder[posState] = new BitTreeEncoder(kNumLowLenBits);
-			midCoder[posState] = new BitTreeEncoder(kNumMidLenBits);
+			lowCoder[posState] = new BitEncoder.BitTreeEncoder(kNumLowLenBits);
+			midCoder[posState] = new BitEncoder.BitTreeEncoder(kNumMidLenBits);
 		}
 		
 		this.init = function(numPosStates) {
@@ -298,3 +301,5 @@ function Encoder() {
 		}
 	};
 }
+
+exports.Encoder = Encoder;

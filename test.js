@@ -1,6 +1,7 @@
 var assert = require('assert');
 var RangeCoder = require('./rangeCoder');
 var BitEncoder = require('./bitEncoder');
+var Encoder = require('./encoder');
 var LzmaDecompress = require('./lzma');
 
 var compareArray = function(a1, a2) {
@@ -107,6 +108,11 @@ var buildSequence = function(length, maxVal) {
 	return sequence;
 };
 
+var testEncoder = function() {
+	var encoder = new Encoder.Encoder();
+	
+};
+
 var runAllTests = function() {
 	testRangeCoder();
 	testBitEncoder();
@@ -116,6 +122,8 @@ var runAllTests = function() {
 
 	testBitTreeEncoder(testSequenceSmall);
 	testBitTreeEncoder(testSequenceLarge);
+	
+	testEncoder();
 };
 
 var start = new Date();
