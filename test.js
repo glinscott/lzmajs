@@ -82,7 +82,7 @@ var testBitTreeEncoder = function(testSequence) {
 		bitTreeEncoder.encode(rangeEncoder, testSequence[i]);
 	}
 	rangeEncoder.finish();
-
+	
 	var bitTreeDecoder = new LzmaDecompress.LZMA.BitTreeDecoder(8);
 	bitTreeDecoder.init();
 	var rangeDecoder = new LzmaDecompress.LZMA.RangeDecoder();
@@ -101,7 +101,7 @@ var buildSequence = function(length, maxVal) {
 	var seed = 0xDEADBEEF;
 	var i;
 	for (i = 0; i < length; i++) {
-		seed = (seed * 73) + 0x1234567;
+		seed = ((seed * 73) + 0x1234567) % 0xFFFFFFFF;
 		sequence[i] = seed % maxVal;
 	}
 	return sequence;
@@ -111,9 +111,9 @@ var runAllTests = function() {
 	testRangeCoder();
 	testBitEncoder();
 
-	var testSequenceSmall = [5, 112, 90, 8, 10, 153, 255, 0, 1];
-	var testSequenceLarge = buildSequence(1000, 255);
-	
+	var testSequenceSmall = [5, 112, 90, 8, 10, 153, 255, 0, 0, 15];
+	var testSequenceLarge = buildSequence(10000, 255);
+
 	testBitTreeEncoder(testSequenceSmall);
 	testBitTreeEncoder(testSequenceLarge);
 };
