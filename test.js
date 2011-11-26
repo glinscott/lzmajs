@@ -3,6 +3,18 @@ var RangeCoder = require('./rangeCoder');
 var BitEncoder = require('./bitEncoder');
 var LzmaDecompress = require('./lzma');
 
+var compareArray = function(a1, a2) {
+	var i;
+	if (a1.length !== a2.length) {
+		throw 'lengths not equal';
+	}
+	for (i = 0; i < a1.length; i++) {
+		if (a1[i] !== a2[i]) {
+			throw 'not equal at ' + i + ' a1[i]=' + a1[i] + ', a2[i]=' + a2[i];
+		}
+	}
+};
+
 var createInStream = function(data) {
 	var inStream = {
 	  data: data,
@@ -16,7 +28,6 @@ var createInStream = function(data) {
 
 var testRangeCoder = function() {
 	var i;
-//	var repeats = 100000;
 	var repeats = 3;
 	var encoder = new RangeCoder.Encoder();
 	for (i = 0; i < repeats; i++) {
@@ -63,7 +74,7 @@ var testBitEncoder = function() {
 var testBitTreeEncoder = function(testSequence) {
 	// Test the BitTreeEncoder, using LZMA.js decompression for verification
 	var i;
-	
+
 	var rangeEncoder = new RangeCoder.Encoder();
 	var bitTreeEncoder = new BitEncoder.BitTreeEncoder(8);
 	bitTreeEncoder.init();
@@ -82,13 +93,33 @@ var testBitTreeEncoder = function(testSequence) {
 	for (i = 0; i < testSequence.length; i++) {
 		result[result.length] = bitTreeDecoder.decode(rangeDecoder);
 	}
-	assert.deepEqual(result, testSequence);
+	compareArray(result, testSequence);
+};
+
+var buildSequence = function(length, maxVal) {
+	var sequence = [];
+	var seed = 0xDEADBEEF;
+	var i;
+	for (i = 0; i < length; i++) {
+		seed = (seed * 73) + 0x1234567;
+		sequence[i] = seed % maxVal;
+	}
+	return sequence;
+};
+
+var runAllTests = function() {
+	testRangeCoder();
+	testBitEncoder();
+
+	var testSequenceSmall = [5, 112, 90, 8, 10, 153, 255, 0, 1];
+	var testSequenceLarge = buildSequence(1000, 255);
+	
+	testBitTreeEncoder(testSequenceSmall);
+	testBitTreeEncoder(testSequenceLarge);
 };
 
 var start = new Date();
-testRangeCoder();
-testBitEncoder();
 
-var testSequence = [5, 112, 90, 8, 10, 153, 255, 0, 1];
-testBitTreeEncoder(testSequence);
-console.log(new Date() - start);
+runAllTests();
+
+console.log('Testing finished in', new Date() - start, 'ms');
