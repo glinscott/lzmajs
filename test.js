@@ -109,15 +109,21 @@ var buildSequence = function(length, maxVal) {
 };
 
 var testEncoder = function() {
+	var rangeEncoder = new RangeCoder.Encoder();
 	var encoder = new Encoder.Encoder();
 	encoder.init();
 	
 	var literalEncoder = new encoder.LiteralEncoder();
 	literalEncoder.create(2, 3);
 	literalEncoder.init();
+	var subCoder = literalEncoder.getSubCoder(5, 11);
+	assert.ok(subCoder != null);
 	
 	var lenEncoder = new encoder.LenEncoder();
-	lenEncoder.init();
+	lenEncoder.init(5);
+	lenEncoder.encode(rangeEncoder, 1, 0);
+	lenEncoder.encode(rangeEncoder, 20, 0);
+	lenEncoder.encode(rangeEncoder, 199, 0);
 	
 	var lenPriceTableEncoder = new encoder.LenPriceTableEncoder();
 	lenPriceTableEncoder.init();

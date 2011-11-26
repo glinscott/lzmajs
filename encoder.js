@@ -233,7 +233,7 @@ function Encoder() {
 				}
 			}
 		};
-		
+
 		this.setPrices = function(posState, numSymbols, prices, st) {
 			var a0 = choice.getPrice0();
 			var a1 = choice.getPrice1();
@@ -291,7 +291,7 @@ function Encoder() {
 	};
 
 	this.LenPriceTableEncoder.prototype = new this.LenEncoder();
-	
+
 	this.code = function() {
 		var progressPosValuePrev = nowPos;
 		if (nowPos === 0) {
