@@ -330,17 +330,104 @@ function BinTree() {
 	};
 	
 	this.skip = function(num) {
-		// TODO
+		var lenLimit, matchMinPos, cur, curMatch, hashValue, hash2Value, hash3Value, temp;
+		var ptr0, ptr1, len0, len1, count, delta, cyclicPos, pby1, len;
+		do {
+			if (this._pos + this._matchMaxLen <= this._streamPos) {
+				lenLimit = this._matchMaxLen;
+			} else {
+				lenLimit = this._streamPos - this._pos;
+				if (lenLimit < kMinMatchCheck) {
+					this.movePos();
+					continue;
+				}
+			}
+			
+			matchMinPos = this._pos > this._cyclicBufferSize ? (this._pos - this._cyclicBufferSize) : 0;
+			cur = this._bufferOffset + this._pos;
+			
+			if (this.hashArray) {
+				temp = CRC.Table[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
+				hash2Value = temp & (kHash2Size - 1);
+				this._hash[hash2Value] = this._pos;
+				temp ^= this._bufferBase[cur + 2] << 8;
+				hash3Value = temp & (kHash3Size - 1);
+				this._hash[kHash3Offset + hash3Value] = this._pos;
+				hashValue = (temp ^ (CRC.Table[this._bufferBase[cur + 3]] << 5)) & this._hashMask;
+			} else {
+				hashValue = this._bufferBase[cur] ^ (this._bufferBase[cur + 1] << 8);
+			}
+			
+			curMatch = this._hash[kFixHashSize + hashValue];
+			this._hash[kFixHashSize + hashValue] = this._pos;
+			
+			ptr0 = (this._cyclicBufferPos << 1) + 1;
+			ptr1 = (this._cyclicBufferPos << 1);
+			
+			len0 = len1 = kNumHashDirectBytes;
+			
+			count = this._cutValue;
+			for(;;) {
+				if (curMatch <= matchMinPos || count-- === 0) {
+					this._son[ptr0] = this._son[ptr1] = kEmptyHashValue;
+					break;
+				}
+				
+				delta = this._pos - curMatch;
+				cyclicPos = (delta <= this._cyclicBufferPos ?
+					(this._cyclicBufferPos - delta) :
+					(this._cyclicBufferPos - delta + this._cyclicBufferSize)) << 1;
+					
+				pby1 = this._bufferOffset + curMatch;
+				len = len0 < len1 ? len0 : len1;
+				if (this._bufferBase[pby1 + len] === this._bufferBase[cur + len]) {
+					while (++len !== lenLimit) {
+						if (this._bufferBase[pby1 + len] !== this._bufferBase[cur + len]) {
+							break;
+						}
+					}
+					if (len === lenLimit) {
+						this._son[ptr1] = this._son[cyclicPos];
+						this._son[ptr0] = this._son[cyclicPos + 1];
+						break;
+					}
+				}
+				if (this._bufferBase[pby1 + len] < this._bufferBase[cur + len]) {
+					this._son[ptr1] = curMatch;
+					ptr1 = cyclicPos + 1;
+					curMatch = this._son[ptr1];
+					len1 = len;
+				} else {
+					this._son[ptr0] = curMatch;
+					ptr0 = cyclicPos;
+					curMatch = this._son[ptr0];
+					len0 = len;
+				}
+			}
+			this.movePos();
+		} while (--num != 0);
 	};
 	
 	this.normalizeLinks = function(items, numItems, subValue) {
-		// TODO
+		var i, value;
+		for (i = 0; i < numItems; i++) {
+			value = items[i];
+			if (value <= subValue) {
+				value = kEmptyHashValue;
+			} else {
+				value -= subValue;
+			}
+			items[i] = value;
+		}
 	};
 	
 	this.normalize = function() {
-		// TODO
+		var subValue = this._pos - this._cyclicBufferSize;
+		this.normalizeLinks(this._son, this._cyclicBufferSize * 2, subValue);
+		this.normalizeLinks(this._hash, this._hashSizeSum, subValue);
+		this.reduceOffsets(subValue);
 	};
-	
+
 	this.setCutValue = function() {
 		this._cutValue = cutValue;
 	};

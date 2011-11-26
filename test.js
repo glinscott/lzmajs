@@ -3,7 +3,7 @@ var RangeCoder = require('./rangeCoder');
 var BitEncoder = require('./bitEncoder');
 var Encoder = require('./encoder');
 var LzmaDecompress = require('./lzma');
-var BitTree = require('./bitTree');
+var BinTree = require('./bitTree');
 
 var compareArray = function(a1, a2) {
 	var i;
@@ -131,8 +131,10 @@ var testEncoder = function() {
 	lenPriceTableEncoder.init();
 };
 
-var testBitTree = function() {
-	var inWindow = new BitTree.InWindow();
+var testBinTree = function() {
+	var inWindow = new BinTree.InWindow();
+	
+	var binTree = new BinTree.BinTree();
 };
 
 var runAllTests = function() {
@@ -145,7 +147,7 @@ var runAllTests = function() {
 	testBitTreeEncoder(testSequenceSmall);
 	testBitTreeEncoder(testSequenceLarge);
 	
-	testBitTree();
+	testBinTree();
 	
 	testEncoder();
 };
