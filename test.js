@@ -124,6 +124,7 @@ var testEncoder = function() {
 	lenEncoder.encode(rangeEncoder, 1, 0);
 	lenEncoder.encode(rangeEncoder, 20, 0);
 	lenEncoder.encode(rangeEncoder, 199, 0);
+	rangeEncoder.finish();
 	
 	var lenPriceTableEncoder = new encoder.LenPriceTableEncoder();
 	lenPriceTableEncoder.init();

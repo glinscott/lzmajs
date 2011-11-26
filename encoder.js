@@ -1,3 +1,4 @@
+var RangeCoder = require('./rangeCoder');
 var BitEncoder = require('./bitEncoder');
 
 function Encoder() {
@@ -6,7 +7,7 @@ function Encoder() {
 	var kNumStates = 12;
 	var kDefaultDictionaryLogSize = 22;
 	var kNumFastBytesDefault = 0x20;
-	
+
 	var kNumLowLenBits = 3;
 	var kNumMidLenBits = 3;
 	var kNumHighLenBits = 8;
@@ -291,6 +292,51 @@ function Encoder() {
 	};
 
 	this.LenPriceTableEncoder.prototype = new this.LenEncoder();
+	
+	this.Optimal = function() {
+	};
+	
+	var _optimum = [];
+	var _matchFinder = null;
+	var _rangeEncoder = new RangeCoder.Encoder();
+
+	var _isMatch = [], _isRep = [], _isRepG0 = [], _isRepG1 = [];
+	var _isRepG2 = [], _isRep0Long = [], _posSlotEncoder = [];
+	var _posEncoders = [], _posAlignEncoder = [];
+	
+	var _lenEncoder = new this.LenPriceTableEncoder();
+	var _repMatchLenEncoder = new this.LenPriceTableEncoder();
+	
+	var _literalEncoder = new this.LiteralEncoder();
+	
+	var _matchDistances = [];
+	var _numFastBytes = kNumFastBytesDefault;
+	var _longestMatchLength, _numDistancePairs;
+	var _additionalOffset, _optimumEndIndex, _optimumCurrentIndex, _longestMatchWasFound;
+	
+	var _posSlotPrices = [], _distancePrices = [], _alignPrices = [];
+	var _alignPriceCount;
+	
+	var _distTableSize = kDefaultDictionaryLogSize * 2;
+	
+	var _posStateBits = 2;
+	var _posStateMask = 4 - 1;
+	var _numLiteralPosStateBits = 0;
+	var _numLiteralContextBits = 3;
+	
+	var _dictionarySize = 1 << kDefaultDictionaryLogSize;
+	var _dictionarySizePrev = 0xFFFFFFFF;
+	var _numFastBytesPrev = 0xFFFFFFFF;
+	
+	var nowPos64, finished, _inStream;
+	var _matchFinderType = 'BT4', _writeEndMark = false;
+	var _needReleaseMFStream;
+	
+	this.create = function() {
+		if (this._matchFinder === null) {
+			
+		}
+	};
 
 	this.code = function() {
 		var progressPosValuePrev = nowPos;
