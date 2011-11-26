@@ -252,9 +252,37 @@ function Encoder() {
 	
 	var kNumLenSpecSymbols = kNumLowLenSymbols + kNumMidLenSymbols;
 	
+	// Derives from LenEncoder
 	this.LenPriceTableEncoder = function() {
+		var prices = [];
+		var counters = [];
+		var tableSize;
 		
+		this.setTableSize = function(tableSize_) {
+			tableSize = tableSize_;
+		};
+		
+		this.updateTable = function(posState) {
+			this.setPrices(posState, tableSize, prices, posState * kNumLenSymbols);
+			counters[posState] = tableSize;
+		};
+		
+		this.updateTables = function(numPosStates) {
+			var posState;
+			for (posState = 0; posState < numPosStates; posState++) {
+				this.updateTable(posState);
+			}
+		};
+		
+		this.encode = function(rangeEncoder, symbol, posState) {
+			this.prototype.encode(rangeEncoder, symbol, posState);
+			if (--counters[posState] === 0) {
+				this.updateTable(posState);
+			}
+		};
 	};
+
+	this.LenPriceTableEncoder.prototype = this.LenEncoder;
 	
 	this.code = function() {
 		var progressPosValuePrev = nowPos;
