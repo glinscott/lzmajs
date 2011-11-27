@@ -485,6 +485,38 @@ function Encoder() {
 		}
 		return price + _lenEncoder.getPrice(len - kMatchMinLen, posState);
 	};
+	
+	this.backward = function(cur) {
+		var posMem, backMem, posPrev, backCur;
+		_optimumEndIndex = cur;
+		posMem = _optimum[cur].posPrev;
+		backMem = _optimum[cur].backPrev;
+		do {
+			if (_optimum[cur].prev1IsChar) {
+				_optimum[posMem].makeAsChar();
+				_optimum[posMem].posPrev = posMem - 1;
+				if (_optimum[cur].prev2) {
+					_optimum[posMem - 1].prev1IsChar = false;
+					_optimum[posMem - 1].posPrev = _optimum[cur].posPrev2;
+					_optimum[posMem - 1].backPrev = _optimum[cur].backPrev2;
+				}
+			}
+
+			posPrev = posMem;
+			backCur = backMem;
+
+			backMem = _optimum[posPrev].backPrev;
+			posMem = _optimum[posPrev].posPrev;
+
+			_optimum[posPrev].backPrev = backCur;
+			_optimum[posPrev].posPrev = cur;
+			cur = posPrev;
+		} while (cur > 0);
+		
+		backRes = _optimum[0].backPrev;
+		_optimumCurrentIndex = _optimum[0].posPrev;
+		return _optimumCurrentIndex;
+	};
 
 	this.code = function() {
 		var progressPosValuePrev = nowPos;
