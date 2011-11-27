@@ -1,5 +1,6 @@
 var RangeCoder = require('./rangeCoder');
 var BitEncoder = require('./bitEncoder');
+var BinTree = require('./binTree');
 
 function Encoder() {
 	var kInfinityPrice = 0xFFFFFFF;
@@ -7,7 +8,17 @@ function Encoder() {
 	var kNumStates = 12;
 	var kDefaultDictionaryLogSize = 22;
 	var kNumFastBytesDefault = 0x20;
+	
+	var kNumAlignBits = 4;
+	var kAlignTableSize = 1 << kNumAlignBits;
+	var kAlignMax = kAlignTableSize - 1;
 
+	var kStartPosModelIndex = 4;
+	var kEndPosModelIndex = 14;
+	var kNumPosModels = kEndPosModelIndex - kStartPosModelIndex;
+
+	var kNumFullDistances = 1 << (kEndPosModelIndex / 2);
+	
 	var kNumLowLenBits = 3;
 	var kNumMidLenBits = 3;
 	var kNumHighLenBits = 8;
@@ -17,10 +28,17 @@ function Encoder() {
 	var kMatchMinLen = 2;
 	var kMatchMaxLen = kMatchMinLen + kNumLenSymbols - 1;
 	
+	var kNumPosSlotBits = 6;
+	var kDicLogSizeMin = 0;
+	
+	var kNumLenToPosStatesBits = 2;
+	var kNumLenToPosStates = 1 << kNumLenToPosStatesBits;
+	
 	var kNumPosStatesBitsMax = 4;
 	var kNumPosStatesMax = 1 << kNumPosStatesBitsMax;
 	var kNumPosStatesBitsEncodingMax = 4;
 	var kNumPosStatesEncodingMax = 1 << kNumPosStatesBitsEncodingMax;
+	var kNumOpts = 1 << 12;
 
 	this.State = function() {
 		this.init = function() {
@@ -98,7 +116,7 @@ function Encoder() {
 	
 	this.LiteralEncoder = function() {
 		this.Encoder2 = function() {
-			var encoders;
+			var encoders = [];
 			
 			this.create = function() {
 				var i;
@@ -302,7 +320,8 @@ function Encoder() {
 
 	var _isMatch = [], _isRep = [], _isRepG0 = [], _isRepG1 = [];
 	var _isRepG2 = [], _isRep0Long = [], _posSlotEncoder = [];
-	var _posEncoders = [], _posAlignEncoder = [];
+	var _posEncoders = [];
+	var _posAlignEncoder = new BitEncoder.BitTreeEncoder(kNumAlignBits);
 	
 	var _lenEncoder = new this.LenPriceTableEncoder();
 	var _repMatchLenEncoder = new this.LenPriceTableEncoder();
@@ -333,10 +352,82 @@ function Encoder() {
 	var _needReleaseMFStream;
 	
 	this.create = function() {
-		if (this._matchFinder === null) {
-			
+		var numHashBytes;
+		if (_matchFinder === null) {
+			numHashBytes = this._matchFinderType == 'BT2' ? 2 : 4;
+			_matchFinder = new BinTree.BinTree();
+			_matchFinder.setType(numHashBytes);
 		}
+		
+		_literalEncoder.create(this._numLiteralPosStateBits, this._numLiteralContextBits);
+		
+		if (_dictionarySize == _dictionarySizePrev && _numFastBytesPrev == _numFastBytes) {
+			return;
+		}
+		_matchFinder.create(_dictionarySize, kNumOpts, _numFastBytes, kMatchMaxLen + 1);
+		_dictionarySizePrev = _dictionarySize;
+		_numFastBytesPrev = _numFastBytes;
 	};
+	
+	this.setWriteEndMarkerMode = function(writeEndMarker) {
+		_writeEndMark = writeEndMarker;
+	};
+
+	this.init = function() {
+		// From ctor
+		var i, j, complexState;
+		for (i = 0; i < kNumOpts; i++) {
+			_optimum[i] = new this.Optimal();
+		}
+		for (i = 0; i < kNumLenToPosStates; i++) {
+			_posSlotEncoder[i] = new BitEncoder.BitTreeEncoder(kNumPosSlotBits);
+		}
+		
+		// Normal init
+		baseInit();
+		_rangeEncoder.init();
+		
+		for (i = 0; i < kNumStates; i++) {
+			for (j = 0; j <= _posStateMask; j++) {
+				complexState = (i << kNumPosStatesBitsMax) + j;
+				_isMatch[complexState] = new BitEncoder.BitEncoder();
+				_isMatch[complexState].init();
+				_isRep0Long[complexState] = new BitEncoder.BitEncoder();
+				_isRep0Long[complexState].init();
+			}
+			_isRep[i] = new BitEncoder.BitEncoder();
+			_isRep[i].init();
+			_isRepG0[i] = new BitEncoder.BitEncoder();
+			_isRepG0[i].init();
+			_isRepG1[i] = new BitEncoder.BitEncoder();
+			_isRepG1[i].init();
+			_isRepG2[i] = new BitEncoder.BitEncoder();
+			_isRepG2[i].init();
+		}
+		
+		_literalEncoder.init();
+		for (i = 0; i < kNumLenToPosStates; i++) {
+			_posSlotEncoder[i].init();
+		}
+		for (i = 0; i < kNumFullDistances - kEndPosModelIndex; i++) {
+			_posEncoders[i] = new BitEncoder.BitEncoder();
+			_posEncoders[i].init();
+		}
+		
+		_lenEncoder.init(1 << _posStateBits);
+		_repMatchLenEncoder.init(1 << _posStateBits);
+		
+		_posAlignEncoder.init();
+		
+		_longestMatchWasFound = false;
+		_optimumEndIndex = 0;
+		_optimumCurrentIndex = 0;
+		_additionalOffset = 0;
+	};
+	
+	this.readMatchDistances = function() {
+		// TODO
+	}
 
 	this.code = function() {
 		var progressPosValuePrev = nowPos;

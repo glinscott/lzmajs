@@ -6,9 +6,20 @@ function shiftLeft8(v) {
 }
 
 function Encoder() {
-	var low = 0, range = 0xFFFFFFFF;
-	var cacheSize = 1, cache = 0;
+	var low, range, cacheSize, cache;
 	this.bytes = [];
+
+	var init = function() {
+		low = 0;
+		range = 0xFFFFFFFF;
+		cacheSize = 1;
+		cache = 0;
+		
+		this.bytes = [];
+	};
+
+	init();
+	this.init = init;
 
 	this.encode = function(start, size, total) {
 		range = (range / total) | 0;

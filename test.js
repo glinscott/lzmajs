@@ -3,7 +3,7 @@ var RangeCoder = require('./rangeCoder');
 var BitEncoder = require('./bitEncoder');
 var Encoder = require('./encoder');
 var LzmaDecompress = require('./lzma');
-var BinTree = require('./bitTree');
+var BinTree = require('./binTree');
 
 var compareArray = function(a1, a2) {
 	var i;
@@ -112,6 +112,7 @@ var buildSequence = function(length, maxVal) {
 var testEncoder = function() {
 	var rangeEncoder = new RangeCoder.Encoder();
 	var encoder = new Encoder.Encoder();
+	encoder.create();
 	encoder.init();
 	
 	var literalEncoder = new encoder.LiteralEncoder();

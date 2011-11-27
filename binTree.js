@@ -43,8 +43,8 @@ function InWindow() {
 	this.free = function() {
 		this._bufferBase = null;
 	};
-	
-	this.create = function(keepSizeBefore, keepSizeAfter, keepSizeReserve) {
+
+	this.createBase = function(keepSizeBefore, keepSizeAfter, keepSizeReserve) {
 		this._keepSizeBefore = keepSizeBefore;
 		this._keepSizeAfter = keepSizeAfter;
 		var blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserve;
@@ -115,6 +115,8 @@ function InWindow() {
 }
 
 function BinTree() {
+	InWindow.call(this);
+	
 	this._cyclicBufferSize = 0;
 	
 	this._son = [];
@@ -127,12 +129,12 @@ function BinTree() {
 	
 	var kHash2Size = 1 << 10, kHash3Size = 1 << 16, kBT2HashSize = 1 << 16;
 	var kStartMaxLen = 1, kHash3Offset = kHash2Size, kEmptyHashValue = 0;
-	var kMaxValForNormalize = (1 << 31) - 1;
+	var kMaxValForNormalize = 0x7FFFFFFF;
 	
 	var kNumHashDirectBytes = 0;
 	var kMinMatchCheck = 4;
 	var kFixHashSize = kHash2Size + kHash3Size;
-	
+
 	this.setType = function(numHashBytes) {
 		this.hashArray = numHashBytes > 2;
 		if (this.hashArray) {
@@ -145,7 +147,7 @@ function BinTree() {
 			kFixHashSize = 0;
 		}
 	};
-	
+
 	this.init = function() {
 		var i;
 		this.prototype.init();
@@ -175,7 +177,7 @@ function BinTree() {
 		this._cutValue = 16 + (matchMaxLen >>> 1);
 		windowReserveSize = (historySize + keepAddBufferBefore + matchMaxLen + keepAddBufferAfter) / 2 + 256;
 		
-		this.prototype.create(historySize + keepAddBufferBefore, matchMaxLen + keepAddBufferAfter, windowReserveSize);
+		this.createBase(historySize + keepAddBufferBefore, matchMaxLen + keepAddBufferAfter, windowReserveSize);
 		
 		this._matchMaxLen = matchMaxLen;
 		
@@ -201,9 +203,9 @@ function BinTree() {
 			hs++;
 			hs += kFixHashSize;
 		}
-		if (hs != _hashSizeSum) {
-			_hashSizeSum = hs;
-			_hash = [];
+		if (hs != this._hashSizeSum) {
+			this._hashSizeSum = hs;
+			this._hash = [];
 		}
 	};
 	
