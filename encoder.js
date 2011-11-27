@@ -452,6 +452,39 @@ function Encoder() {
 		return _isRepG0[state.index].getPrice0() +
 			_isRep0Long[(state.index << kNumPosStatesBitsMax) + posState].getPrice0();
 	};
+	
+	this.getPureRepPrice = function(repIndex, state, posState) {
+		var price;
+		if (repIndex === 0) {
+			price = _isRepG0[state.index].getPrice0();
+			price += _isRep0Long[(state.index << kNumPosStatesBitsMax) + posState].getPrice1();
+		} else {
+			price = _isRepG0[state.index].getPrice1();
+			if (repIndex === 1) {
+				price += _isRepG1[state.index].getPrice0();
+			} else {
+				price += _isRepG1[state.index].getPrice1();
+				price += _isRepG2[state.index].getPrice(repIndex - 2);
+			}
+		}
+		return price;
+	};
+	
+	this.getRepPrice = function(repIndex, len, state, posState) {
+		var price = _repMatchLenEncoder.getPrice(len - kMatchMinLen, posState);
+		return price + this.getPureRepPrice(repIndex, state, posState);
+	};
+	
+	this.getPosLenPrice = function(pos, len, posState) {
+		var price;
+		var lenToPosState = this.getLenToPosState(len);
+		if (pos < kNumFullDistances) {
+			price = _distancePrices[(lenToPosState * kNumFullDistances) + pos];
+		} else {
+			price = _posSlotPrices[(lenToPosState << kNumPosSlotBits) + this.getPosSlot2(pos)] + _alignPrices[pos & kAlignMask];
+		}
+		return price + _lenEncoder.getPrice(len - kMatchMinLen, posState);
+	};
 
 	this.code = function() {
 		var progressPosValuePrev = nowPos;
