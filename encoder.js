@@ -18,7 +18,7 @@ function Encoder() {
 	var kNumPosModels = kEndPosModelIndex - kStartPosModelIndex;
 
 	var kNumFullDistances = 1 << (kEndPosModelIndex / 2);
-	
+
 	var kNumLowLenBits = 3;
 	var kNumMidLenBits = 3;
 	var kNumHighLenBits = 8;
@@ -354,14 +354,14 @@ function Encoder() {
 	this.create = function() {
 		var numHashBytes;
 		if (_matchFinder === null) {
-			numHashBytes = this._matchFinderType == 'BT2' ? 2 : 4;
+			numHashBytes = this._matchFinderType === 'BT2' ? 2 : 4;
 			_matchFinder = new BinTree.BinTree();
 			_matchFinder.setType(numHashBytes);
 		}
 		
 		_literalEncoder.create(this._numLiteralPosStateBits, this._numLiteralContextBits);
 		
-		if (_dictionarySize == _dictionarySizePrev && _numFastBytesPrev == _numFastBytes) {
+		if (_dictionarySize === _dictionarySizePrev && _numFastBytesPrev === _numFastBytes) {
 			return;
 		}
 		_matchFinder.create(_dictionarySize, kNumOpts, _numFastBytes, kMatchMaxLen + 1);
@@ -426,8 +426,32 @@ function Encoder() {
 	};
 	
 	this.readMatchDistances = function() {
-		// TODO
-	}
+		var lenRes = 0;
+		var numDistancePairs = _matchFinder.getMatches(_matchDistances);
+		if (numDistancePairs > 0) {
+			lenRes = _matchDistances[numDistancePairs - 2];
+			if (lenRes === _numFastBytes) {
+				lenRes += _matchFinder.getMatchLen(lenRes - 1, _matchDistances[numDistancePairs - 1], kMatchMaxLen - lenRes);
+			}
+		}
+		_additionalOffset++;
+		return {
+			lenRes: lenRes,
+			numDistancePairs: numDistancePairs
+		};
+	};
+	
+	this.movePos = function(num) {
+		if (num > 0) {
+			_matchFinder.skip(num);
+			_additionalOffset += num;
+		}
+	};
+	
+	this.getRepLen1Price = function(state, posState) {
+		return _isRepG0[state.index].getPrice0() +
+			_isRep0Long[(state.index << kNumPosStatesBitsMax) + posState].getPrice0();
+	};
 
 	this.code = function() {
 		var progressPosValuePrev = nowPos;

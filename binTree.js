@@ -203,7 +203,7 @@ function BinTree() {
 			hs++;
 			hs += kFixHashSize;
 		}
-		if (hs != this._hashSizeSum) {
+		if (hs !== this._hashSizeSum) {
 			this._hashSizeSum = hs;
 			this._hash = [];
 		}
@@ -407,7 +407,7 @@ function BinTree() {
 				}
 			}
 			this.movePos();
-		} while (--num != 0);
+		} while (--num !== 0);
 	};
 	
 	this.normalizeLinks = function(items, numItems, subValue) {
@@ -433,7 +433,7 @@ function BinTree() {
 	this.setCutValue = function() {
 		this._cutValue = cutValue;
 	};
-};
+}
 
 BinTree.prototype = new InWindow();
 
