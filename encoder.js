@@ -44,6 +44,9 @@ function Encoder() {
 		this.init = function() {
 			this.index = 0;
 		};
+		this.clone = function() {
+			throw 'unimplemented';
+		};
 		this.updateChar = function() {
 			if (this.index < 4) {
 				this.index = 0;
@@ -351,6 +354,9 @@ function Encoder() {
 	var _matchFinderType = 'BT4', _writeEndMark = false;
 	var _needReleaseMFStream;
 	
+	var reps = [];
+	var repLens = [];
+	
 	this.create = function() {
 		var numHashBytes;
 		if (_matchFinder === null) {
@@ -515,7 +521,377 @@ function Encoder() {
 		
 		backRes = _optimum[0].backPrev;
 		_optimumCurrentIndex = _optimum[0].posPrev;
-		return _optimumCurrentIndex;
+		return {result: _optimumCurrentIndex, backRes: backRes};
+	};
+	
+	this.getOptimum = function(position) {
+		var backRes, lenMain, numDistancePairs, numAvailableBytes;
+		var repMatchIndex, i, currentByte, matchByte, posState;
+		var matchPrice, repMatchPrice, lenEnd, lenRes, shortRepPrice;
+		var matchDistances, price, len, curAndLenPrice, optimum, normalMatchPrice;
+		var offs;
+		
+		if (_optimumEndIndex !== _optimumCurrentIndex) {
+			lenRes = _optimum[_optimumCurrentIndex].posPrev - _optimumCurrentIndex;
+			backRes = _optimum[_optimumCurrentIndex].backPrev;
+			_optimumCurrentIndex = _optimum[_optimumCurrentIndex].posPrev;
+			return {result: lenRes, backRes: backRes};
+		}
+		_optimumCurrentIndex = _optimumEndIndex = 0;
+		
+		if (!_longestMatchWasFound) {
+			matchDistances = this.readMatchDistances();
+			lenMain = matchDistances.lenRes;
+			numDistancePairs = matchDistances.numDistancePairs;
+		} else {
+			lenMain = _longestMatchLength;
+			numDistancePairs = _numDistancePairs;
+			_longestMatchWasFound = false;
+		}
+		
+		numAvailableBytes = _matchFinder.getNumAvailableBytes() + 1;
+		if (numAvailableBytes < 2) {
+			return {result: 1, backRes: 0xFFFFFFFF};
+		}
+		
+		if (numAvailableBytes > kMatchMaxLen) {
+			numAvailableBytes = kMatchMaxLen;
+		}
+		
+		repMaxIndex = 0;
+		for (i = 0; i < kNumRepDistances; i++) {
+			reps[i] = _repDistances[i];
+			repLens[i] = _matchFinder.getMatchLen(-1, reps[i], kMatchMaxLen);
+			if (repLens[i] > repLens[repMaxIndex]) {
+				repMaxIndex = i;
+			}
+		}
+		
+		if (repLens[repMaxIndex] >= _numFastBytes) {
+			lenRes = repLens[repMaxIndex];
+			backRes = repMaxIndex;
+			this.movePos(lenRes - 1);
+			return {result: lenRes, backRes: backRes};
+		}
+		
+		if (lenMain >= _numFastBytes) {
+			backRes = _matchDistances[numDistancePairs - 1] + kNumRepDistances;
+			this.movePos(lenMain - 1);
+			return {result: lenMain, backRes: backRes};
+		}
+		
+		currentByte = _matchFinder.getIndexByte(-1);
+		matchByte = _matchFinder.getIndexByte(-_repDistances[0] - 2);
+		
+		if (lenMain < 2 && currentByte !== matchByte && repLens[repMaxIndex] < 2) {
+			return {result: 1, backRes: 0xFFFFFFFF};
+		}
+		
+		_optimum[0].state = _state;
+		
+		posState = position & _posStateMask;
+		
+		_optimum[1].price = _isMatch[(_state.index << kNmPosStatesBitsMax) + posState].getPrice0() +
+			_literalEncoder.getSubCoder(position, _previousByte).getPrice(!_state.isCharState(), matchByte, currentByte);
+		_optimum[1].makeAsChar();
+		
+		matchPrice = _isMatch[(_state.index << kNumPosStatesBitsMax) + posState].getPrice1();
+		repMatchPrice = matchPrice + _isRep[_state.index].getPrice1();
+		
+		if (matchByte === currentByte) {
+			shortRepPrice = repMatchPrice + this.getRepLen1Price(_state, posState);
+			if (shortRepPrice < _optimum[1].price) {
+				_optimum[1].price = shortRepPrice;
+				_optimum[1].makeAsShortRep();
+			}
+		}
+		
+		lenEnd = lenMain >= repLens[repMaxIndex] ? lenMain : repLens[repMaxIndex];
+		if (lenEnd < 2) {
+			return {result: 1, backRes: _optimum[1].backPrev};
+		}
+		
+		_optimum[1].posPrev = 0;
+		_optimum[0].backs0 = reps[0];
+		_optimum[0].backs1 = reps[1];
+		_optimum[0].backs2 = reps[2];
+		_optimum[0].backs3 = reps[3];
+		
+		len = lenEnd;
+		do {
+			_optimum[len--].price = kInfinityPrice;
+		} while (len >= 2);
+		
+		for (i = 0; i < kNumRepDistances; i++) {
+			repLen = repLens[i];
+			if (repLen < 2) {
+				continue;
+			}
+				
+			price = repMatchPrice + this.getPureRepPrice(i, _state, posState);
+			do {
+				curAndLenPrice = price + _repMatchLenEncoder.getPrice(repLen - 2, posState);
+				optimum = _optimum[repLen];
+				if (curAndLenPrice < optimum.price) {
+					optimum.price = curAndLenprice;
+					optimum.posPrev = 0;
+					optimum.backPrev = i;
+					optimum.prev1IsChar = false;
+				}
+			} while (--repLen >= 2);
+		}
+		
+		normalMachPrice = matchPrice + _isRep[_state.index].getPrice0();
+		
+		len = repLens[0] >= 2 ? repLens[0] + 1 : 2;
+		if (len <= lenMain) {
+			offs = 0;
+			while (len > _matchDistances[offs]) {
+				offs += 2;
+			}
+			for (;; len++) {
+				distance = _matchDistances[offs + 1];
+				curAndLenPrice = normalMatchPrice + this.getPosLenPrice(distance, len, posState);
+				optimum = _optimum[len];
+				if (curAndLenPrice < optimum.price) {
+					optimum.price = curAndLenPrice;
+					optimum.posPrev = 0;
+					optimum.backPrev = distance + kNumRepDistances;
+					optimum.prev1IsChar = false;
+				}
+				if (len === _matchDistances[offs]) {
+					offs += 2;
+					if (offs === numDistancePairs) {
+						break;
+					}
+				}
+			}
+		}
+		
+		cur = 0;
+		for(;;) {
+			cur++;
+			if (cur === lenEnd) {
+				return this.backward(cur);
+			}
+			matchDistances = this.readMatchDistances();
+			if (matchDistances.lenRes >= _numFastBytes) {
+				_numDistancePairs = matchDistances.numDistancePairs;
+				_longestMatchLength = matchDistances.lenRes;
+				_longestMatchWasFound = true;
+				return this.backward(cur);
+			}
+			position++;
+			posPrev = _optimum[cur].posPrev;
+			if (_optimum[cur].prev1IsChar) {
+				posPrev--;
+				if (_optimum[cur].prev2) {
+					state = _optimum[_optimum[cur].posPrev2].state;
+					if (_optimum[cur].backPrev2 < kNumRepDistances) {
+						state.updateRep();
+					} else {
+						state.updateMatch();
+					}
+				} else {
+					state = _optimum[posPrev].state;
+				}
+				state.updateChar();
+			} else {
+				state = _optimum[posPrev].state;
+			}
+			
+			if (posPrev === cur - 1) {
+				if (_optimum[cur].isShortRep()) {
+					state.updateShortRep();
+				} else {
+					state.updateChar();
+				}
+			} else {
+				if (_optimum[cur].prev1IsChar && _optimum[cur].prev2) {
+					posPrev = _optimum[cur].posPrev2;
+					pos = _optimum[cur].backPrev2;
+					state.updateRep();
+				} else {
+					pos = _optimum[cur].backPrev;
+					if (pos < kNumRepDistances) {
+						state.updateRep();
+					} else {
+						state.updateMatch();
+					}
+				}
+				
+				opt = _optimum[posPrev];
+				if (pos < kNumRepDistances) {
+					if (pos === 0) {
+						reps[0] = opt.backs0;
+						reps[1] = opt.backs1;
+						reps[2] = opt.backs2;
+						reps[3] = opt.backs3;
+					} else if (pos === 1) {
+						reps[0] = opt.backs1;
+						reps[1] = opt.backs0;
+						reps[2] = opt.backs2;
+						reps[3] = opt.backs3;						
+					} else if (pos === 2) {
+						reps[0] = opt.backs2;
+						reps[1] = opt.backs0;
+						reps[2] = opt.backs1;
+						reps[3] = opt.backs3;						
+					} else {
+						reps[0] = opt.backs3;
+						reps[1] = opt.backs0;
+						reps[2] = opt.backs1;
+						reps[3] = opt.backs2;						
+					}
+				} else {
+					reps[0] = pos - kNumRepDistances;
+					reps[1] = opt.backs0;
+					reps[2] = opt.backs1;
+					reps[3] = opt.backs2;
+				}
+			}
+			_optimum[cur].state = state;
+			_optimum[cur].backs0 = reps[0];
+			_optimum[cur].backs1 = reps[1];
+			_optimum[cur].backs2 = reps[2];
+			_optimum[cur].backs3 = reps[3];
+			
+			curPrice = _optimum[cur].price;
+			currentByte = _matchFinder.getIndexByte(-1);
+			matchByte = _matchFinder.getIndexByte(-reps[0] - 2);
+			posState = position & _posStateMask;
+			
+			curAnd1Price = curPrice +
+				_isMatch[(state.index << kNumPosStatesBitsMax) + posState].getPrice0() +
+				_literalEncoder.getSubCoder(position, _matchFinder.getIndexByte(-2)).getPrice(!state.isCharState(), matchByte, currentByte);
+				
+			nextOptimum = _optimum[cur + 1];
+
+			nextIsChar = false;
+			if (curAnd1Price < nextOptimum.price) {
+				nextOptimum.price = curAnd1Price;
+				nextOptimum.posPrev = cur;
+				nextOptimum.makeAsChar();
+				nextIsChar = true;
+			}
+			
+			matchPrice = curPrice + _isMatch[(state.index << kNumPosStatesBitsMax) + posState].getPrice1();
+			repMatchPrice = matchPrice + _isRep[state.index].getPrice1();
+			
+			if (matchByte === currentByte && !(nextOptimum.posPrev < cur && nextOptimum.backPrev === 0)) {
+				shortRepPrice = repMatchPrice + getRepLen1Price(state, posState);
+				if (shortRepPrice <= nextOptimum.price) {
+					nextOptimum.price = shortRepPrice;
+					nextOptimum.posPrev = cur;
+					nextOptimum.makeAsShortRep();
+					nextIsChar = true;
+				}
+			}
+			
+			numAvailableBytesFull = _matchFinder.getNumAvailableBytes() + 1;
+			numAvailableBytesFull = min(kNumOpts - 1 - cur, numAvailableBytesFull);
+			numAvailableBytes = numAvailableByesFull;
+			
+			if (numAvailableBytes < 2) {
+				continue;
+			}
+			if (numAvailableBytes > _numFastBytes) {
+				numAvailableBytes = _numFastBytes;
+			}
+			if (!nextIsChar && matchByte !== currentByte) {
+				// Try literal + rep0
+				t = min(numAvailableBytesFull - 1, _numFastBytes);
+				lenTest2 = _matchFinder.getMatchLen(0, reps[0], t);
+				if (lenTest2 >= 2) {
+					state2 = state.clone();
+					state2.updateChar();
+					posStateNext = (position + 1) & _posStateMask;
+					nextRepMatchPrice = curAnd1Price +
+						_isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice1() +
+						_isRep[state2.index].getPrice1();
+						
+					offset = cur + 1 + lenTest2;
+					while (lenEnd < offset) {
+						_optimum[++lenEnd].price = kInfinityPrice;
+					}
+					curAndLenPrice = nextRepMatchPrice + this.getRepPrice(0, lenTest2, state2, posStateNext);
+					optimum = _optimum[offset];
+					if (curAndLenPrice < optimum.price) {
+						optimum.price = curAndLenPrice;
+						optimum.posPrev = cur + 1;
+						optimum.backPrev = 0;
+						optimum.prev1IsChar = true;
+						optimum.prev2 = false;
+					}
+				}
+			}
+		}
+		
+		startLen = 2;	// Speed optimization
+		
+		for (repIndex = 0; repIndex < kNumRepDistances; repIndex++) {
+			lenTest = _matchFinder.getMatchLen(-1, reps[repIndex], numAvailableBytes);
+			if (lenTest < 2) {
+				continue;
+			}
+			lenTestTemp = lenTest;
+			do {
+				while (lenEnd < cur + lenTest) {
+					_optimum[++lenEnd].price = kInfinityPrice;
+				}
+				curAndLenPrice = repMatchPrice + this.getRepPrice(repIndex, lenTest, state, posState);
+				optimum = _optimum[cur + lenTest];
+				if (curAndLenPrice < optimum.price) {
+					optimum.price = curAndLenPrice;
+					optimum.posPrev = cur;
+					optimum.backPrev = repIndex;
+					optimum.prev1IsChar = false;
+				}
+			} while (--lenTest >= 2);
+			lenTest = lenTestTemp;
+			
+			if (repIndex === 0) {
+				startLen = lenTest + 1;
+			}
+			
+			if (lenTest < numAvailableBytesFull) {
+				t = min(numAvailableBytesFull - 1 - lenTest, _numFastBytes);
+				lenTest2 = _matchFinder.getMatchLen(lenTest, reps[repIndex], t);
+				if (lenTest2 >= 2) {
+					state2 = state.clone();
+					state2.updateRep();
+					posStateNext = (position + lenTest) & _posStateMask;
+					curAndLenCharPrice = repMatchPrice +
+						this.getRepPrice(repIndex, lenTest, state, posState) +
+						_isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice0() +
+						_literalEncoder.getSubCoder(position + lenTest, _matchFinder.getIndexByte(lenTest - 2))
+							.getPrice(true, _matchFinder.getIndexByte(lenTest - 1 - (reps[repIndex] + 1)), _matchFinder.getIndexByte(lenTest - 1));
+
+					state2.updateChar();
+					posStateNext = (position + lenTest + 1) & _posStateMask;
+					nextMatchPrice = curAndLenCharPrice + _isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice1();
+					nextRepMatchPrice = nextMatchPrice + _isRep[state2.index].getPrice1();
+					
+					offset = lenTest + 1 + lenTest2;
+					while (lenEnd < cur + offset) {
+						_optimum[++lenEnd].price = kInfinityPrice;
+					}
+					curAndLenPrice = nextRepMatchPrice + this.getRepPrice(0, lenTest2, state2, posStateNext);
+					optimum = _optimum[cur + offset];
+					if (curAndLenPrice < optimum.price) {
+						optimum.price = curAndLenPrice;
+						opitmum.posPrev = cur + lenTest + 1;
+						optimum.backPrev = 0;
+						optimum.prev1IsChar = true;
+						optimum.prev2 = true;
+						optimum.posPrev2 = cur;
+						optimum.backPrev2 = repIndex;
+					}
+				}
+			}
+		}
+		
+		throw 'unimplemented yet';
 	};
 
 	this.code = function() {
