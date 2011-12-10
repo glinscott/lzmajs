@@ -825,73 +825,146 @@ function Encoder() {
 					}
 				}
 			}
-		}
 		
-		startLen = 2;	// Speed optimization
+			startLen = 2;	// Speed optimization
 		
-		for (repIndex = 0; repIndex < kNumRepDistances; repIndex++) {
-			lenTest = _matchFinder.getMatchLen(-1, reps[repIndex], numAvailableBytes);
-			if (lenTest < 2) {
-				continue;
-			}
-			lenTestTemp = lenTest;
-			do {
-				while (lenEnd < cur + lenTest) {
-					_optimum[++lenEnd].price = kInfinityPrice;
+			for (repIndex = 0; repIndex < kNumRepDistances; repIndex++) {
+				lenTest = _matchFinder.getMatchLen(-1, reps[repIndex], numAvailableBytes);
+				if (lenTest < 2) {
+					continue;
 				}
-				curAndLenPrice = repMatchPrice + this.getRepPrice(repIndex, lenTest, state, posState);
-				optimum = _optimum[cur + lenTest];
-				if (curAndLenPrice < optimum.price) {
-					optimum.price = curAndLenPrice;
-					optimum.posPrev = cur;
-					optimum.backPrev = repIndex;
-					optimum.prev1IsChar = false;
-				}
-			} while (--lenTest >= 2);
-			lenTest = lenTestTemp;
-			
-			if (repIndex === 0) {
-				startLen = lenTest + 1;
-			}
-			
-			if (lenTest < numAvailableBytesFull) {
-				t = min(numAvailableBytesFull - 1 - lenTest, _numFastBytes);
-				lenTest2 = _matchFinder.getMatchLen(lenTest, reps[repIndex], t);
-				if (lenTest2 >= 2) {
-					state2 = state.clone();
-					state2.updateRep();
-					posStateNext = (position + lenTest) & _posStateMask;
-					curAndLenCharPrice = repMatchPrice +
-						this.getRepPrice(repIndex, lenTest, state, posState) +
-						_isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice0() +
-						_literalEncoder.getSubCoder(position + lenTest, _matchFinder.getIndexByte(lenTest - 2))
-							.getPrice(true, _matchFinder.getIndexByte(lenTest - 1 - (reps[repIndex] + 1)), _matchFinder.getIndexByte(lenTest - 1));
-
-					state2.updateChar();
-					posStateNext = (position + lenTest + 1) & _posStateMask;
-					nextMatchPrice = curAndLenCharPrice + _isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice1();
-					nextRepMatchPrice = nextMatchPrice + _isRep[state2.index].getPrice1();
-					
-					offset = lenTest + 1 + lenTest2;
-					while (lenEnd < cur + offset) {
+				lenTestTemp = lenTest;
+				do {
+					while (lenEnd < cur + lenTest) {
 						_optimum[++lenEnd].price = kInfinityPrice;
 					}
-					curAndLenPrice = nextRepMatchPrice + this.getRepPrice(0, lenTest2, state2, posStateNext);
-					optimum = _optimum[cur + offset];
+					curAndLenPrice = repMatchPrice + this.getRepPrice(repIndex, lenTest, state, posState);
+					optimum = _optimum[cur + lenTest];
 					if (curAndLenPrice < optimum.price) {
 						optimum.price = curAndLenPrice;
-						opitmum.posPrev = cur + lenTest + 1;
-						optimum.backPrev = 0;
-						optimum.prev1IsChar = true;
-						optimum.prev2 = true;
-						optimum.posPrev2 = cur;
-						optimum.backPrev2 = repIndex;
+						optimum.posPrev = cur;
+						optimum.backPrev = repIndex;
+						optimum.prev1IsChar = false;
+					}
+				} while (--lenTest >= 2);
+				lenTest = lenTestTemp;
+			
+				if (repIndex === 0) {
+					startLen = lenTest + 1;
+				}
+			
+				if (lenTest < numAvailableBytesFull) {
+					t = min(numAvailableBytesFull - 1 - lenTest, _numFastBytes);
+					lenTest2 = _matchFinder.getMatchLen(lenTest, reps[repIndex], t);
+					if (lenTest2 >= 2) {
+						state2 = state.clone();
+						state2.updateRep();
+						posStateNext = (position + lenTest) & _posStateMask;
+						curAndLenCharPrice = repMatchPrice +
+							this.getRepPrice(repIndex, lenTest, state, posState) +
+							_isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice0() +
+							_literalEncoder.getSubCoder(position + lenTest, _matchFinder.getIndexByte(lenTest - 2))
+								.getPrice(true, _matchFinder.getIndexByte(lenTest - 1 - (reps[repIndex] + 1)), _matchFinder.getIndexByte(lenTest - 1));
+
+						state2.updateChar();
+						posStateNext = (position + lenTest + 1) & _posStateMask;
+						nextMatchPrice = curAndLenCharPrice + _isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice1();
+						nextRepMatchPrice = nextMatchPrice + _isRep[state2.index].getPrice1();
+					
+						offset = lenTest + 1 + lenTest2;
+						while (lenEnd < cur + offset) {
+							_optimum[++lenEnd].price = kInfinityPrice;
+						}
+						curAndLenPrice = nextRepMatchPrice + this.getRepPrice(0, lenTest2, state2, posStateNext);
+						optimum = _optimum[cur + offset];
+						if (curAndLenPrice < optimum.price) {
+							optimum.price = curAndLenPrice;
+							opitmum.posPrev = cur + lenTest + 1;
+							optimum.backPrev = 0;
+							optimum.prev1IsChar = true;
+							optimum.prev2 = true;
+							optimum.posPrev2 = cur;
+							optimum.backPrev2 = repIndex;
+						}
+					}
+				}			
+			}
+			
+			if (newLen > numAvailableBytes) {
+				newLen = numAvailableBytes;
+				numDistancePairs = 0;
+				while (newLen > _matchDistances[numDistancePairs]) {
+					numDistancePairs += 2;
+				}
+				_matchDistances[numDistancePairs] = newLen;
+				numDistancePairs += 2;
+			}
+			
+			if (newLen >= startLen) {
+				normalMatchPrice = matchPrice + _isRep[state.index].getPrice0();
+				while (lenEnd < cur + newLen) {
+					_optimum[++lenEnd].price = kInfinityPrice;
+				}
+				
+				offs = 0;
+				while (startLen > _matchDistances[offs]) {
+					offs += 2;
+				}
+				
+				for (lenTest = startLen;; lenTest++) {
+					curBack = _matchDistances[offs + 1];
+					curAndLenPrice = normalMatchPrice + this.getPosLenPrice(curBack, lenTest, posState);
+					optimum = _optimum[cur + lenTest];
+					if (curAndLenPrice < optimum.price) {
+						optimum.price = curAndLenPrice;
+						optimum.posPrev = cur;
+						optimum.backPrev = curBack + kNumRepDistances;
+						optimum.prev1IsChar = false;
+					}
+					
+					if (lenTest === _matchDistances[offs]) {
+						if (lenTest < numAvailableBytesFull) {
+							t = min(numAvailableBytesFull - 1 - lenTest, _numFastBytes);
+							lenTest2 = _matchFinder.getMatchLen(lenTest, curBack, t);
+							if (lenTest2 >= 2) {
+								state2 = state.clone();
+								state2.updateMatch();
+								posStateNext = (position + lenTest) & _posStateMax;
+								curAndLenCharPrice = curAndLenPrice +
+									_isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice0() +
+									_literalEncoder.getSubCoder(position + lenTest, matchFinder.getIndexByte(lenTest - 2))
+										.getPrice(true, _matchFinder.getIndexByte(lenTest - (curBack + 1) -1, _matchFinder.getIndexByte(lenTest - 1)));
+								
+								state2.updateChar();
+								posStateNext = (position + lenTest + 1) & _posStateMask;
+								nextMatchPrice = curAndLenCharPrice + _isMatch[(state2.index << kNumPosStatesBitsMax) + posStateNext].getPrice1();
+								nextRepMatchPrice = nextMatchPrice + _isRep[state2.index].getPrice1();
+								
+								offset = lenTest + 1 + lenTest2;
+								while (lenEnd < cur + offset) {
+									_optimum[++lenEnd].price = kInfinityPrice;
+								}
+								curAndLenPrice = nextRepMatchPrice + this.getRepPrice(0, lenTest2, state2, posStateNext);
+								optimum = _optimum[cur + offset];
+								if (curAndLenPrice < optimum.price) {
+									optimum.price = curAndLenPrice;
+									optimum.posPrev = cur + lenTest + 1;
+									optimum.backPrev = 0;
+									optimum.prev1IsChar = true;
+									optimum.prev2 = true;
+									optimum.posPrev2 = cur;
+									optimum.backPrev2 = curBack + kNumRepDistances;
+								}
+							}
+						}
+						offs += 2;
+						if (offs === numDistancePairs) {
+							break;
+						}
 					}
 				}
 			}
 		}
-		
-		throw 'unimplemented yet';
 	};
 
 	this.code = function() {
