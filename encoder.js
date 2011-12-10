@@ -966,17 +966,58 @@ function Encoder() {
 			}
 		}
 	};
+	
+	this.changePair = function(smallDist, bigDist) {
+		var kDif = 7;
+		return (smallDist < (1 << (32 - kDif)) && bigDist >= (smallDist << kDif));
+	};
+	
+	this.writeEndMarker = function(posState) {
+		var len = kMatchMinLen, footerBits = 30, posReduced;
+		
+		if (_writeEndMark)
+			return;
+			
+		_isMatch[(_state.index << kNumPosStatesBitsMax) + posState].encode(_rangeEncoder, 1);
+		_isRep[_state.index].encode(_rangeEncoder, 0);
+		_state.updateMatch();
+
+		_lenEncoder.encode(_rangeEncoder, len - kMatchMinLen, posState);
+		posSlot = (1 << kNumPosSlotBits) - 1;
+		lenToPosState = this.getLenToPosState(len);
+		_posSlotEncoder[lenToPosState].encode(_rangeEncoder, posSlot);
+
+		posReduced = (1 << footerBits) - 1;
+		_rangeEncoder.encodeDirectBits(posReduced >> kNumAlignBits, footerBits - kNumAlignBits);
+		_posAlignEncoder.reverseEncode(_rangeEncoder, posReduced & kAlignMask);
+	};
+	
+	this.flush = function(nowPos) {
+		this.releaseMFStream();
+		this.writeEndMarker(nowPos & _posStateMask);
+		_rangeEncoder.flushData();
+		_rangeEncoder.flushStream();
+	};
+	
+	this.releaseMFStream = function() {
+		if (_matchFinder !== null && _needReleaseMFStream) {
+			_matchFinder.releaseStream();
+			_needReleaseMFStream = false;
+		}
+	};
 
 	this.code = function() {
+		var matchDistances, posState;
 		var progressPosValuePrev = nowPos;
+		
 		if (nowPos === 0) {
-			if (matchFinder.getNumAvailableBytes() === 0) {
+			if (_matchFinder.getNumAvailableBytes() === 0) {
 				this.flush(nowPos);
 				return;
 			}
 			
-			var result = this.readMatchDistances();
-			var posState = nowPos & posStateMask;
+			matchDistances = this.readMatchDistances();
+			posState = nowPos & _posStateMask;
 			
 		}
 	};
