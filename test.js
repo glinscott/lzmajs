@@ -5,6 +5,10 @@ var Encoder = require('./encoder');
 var LzmaDecompress = require('./lzma');
 var BinTree = require('./binTree');
 
+var min = function(a, b) {
+	return a < b ? a : b;
+};
+
 var compareArray = function(a1, a2) {
 	var i;
 	if (a1.length !== a2.length) {
@@ -151,14 +155,28 @@ var testEncoder = function() {
 var testBinTree = function(sequence) {
 	var stream = createEncoderStream(sequence);
 	
+	var blockSize = (1 << 12) + 0x20 + 275;
 	var inWindow = new BinTree.InWindow();
-	inWindow.createBase(1 << 22, 1 << 12, 275);
+	inWindow.createBase(1 << 12, 0x20, 275);
 	inWindow.setStream(stream);
 	inWindow.initBase();
 	
-	assert.equal(inWindow.getNumAvailableBytes(), 10);
+	// Test basics
+	var remaining = min(sequence.length, blockSize);
+	assert.equal(inWindow.getNumAvailableBytes(), remaining);
+	assert.equal(inWindow.getIndexByte(0), sequence[0]);
+	assert.equal(inWindow.getIndexByte(1), sequence[1]);
+	inWindow.movePosBase();
+	assert.equal(inWindow.getNumAvailableBytes(), remaining - 1);
+	assert.equal(inWindow.getIndexByte(0), sequence[1]);
+
+	// Test sequence matching
+	var testSequenceRepeats = [0, 1, 2, 3, 5, 0, 1, 2, 3, 4];
+	inWindow.setStream(createEncoderStream(testSequenceRepeats));
+	inWindow.initBase();
+	assert.equal(inWindow.getMatch(5, 4, 8), 4);
 	
-	var binTree = new BinTree.BinTree();	
+	var binTree = new BinTree.BinTree();
 	binTree.setType(4);
 	binTree.create(1 << 22, 1 << 12, 0x20, 275);
 	binTree.setStream(stream);
@@ -176,6 +194,7 @@ var runAllTests = function() {
 	testBitTreeEncoder(testSequenceLarge);
 	
 	testBinTree(testSequenceSmall);
+	testBinTree(testSequenceLarge);
 	
 	testEncoder();
 };

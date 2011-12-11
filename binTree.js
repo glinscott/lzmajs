@@ -205,7 +205,7 @@ function BinTree() {
 		}
 		if (hs !== this._hashSizeSum) {
 			this._hashSizeSum = hs;
-			this._hash = [];
+			this._hash = new Array(this._hashSizeSum);
 		}
 	};
 	
