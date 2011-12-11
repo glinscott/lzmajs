@@ -28,6 +28,22 @@ var createInStream = function(data) {
 	return inStream;
 };
 
+var createEncoderStream = function(data) {
+	var stream = {
+		data: data,
+		offset: 0,
+		read: function(buffer, bufOffset, length) {
+			var bytesRead = 0;
+			while (bytesRead < length && this.offset < data.length) {
+				buffer[bufOffset++] = this.data[this.offset++];
+				bytesRead++;
+			}
+			return bytesRead;
+		}
+	};
+	return stream;
+}
+
 var testRangeCoder = function() {
 	var i;
 	var repeats = 3;
@@ -132,10 +148,21 @@ var testEncoder = function() {
 	lenPriceTableEncoder.init();
 };
 
-var testBinTree = function() {
-	var inWindow = new BinTree.InWindow();
+var testBinTree = function(sequence) {
+	var stream = createEncoderStream(sequence);
 	
-	var binTree = new BinTree.BinTree();
+	var inWindow = new BinTree.InWindow();
+	inWindow.createBase(1 << 22, 1 << 12, 275);
+	inWindow.setStream(stream);
+	inWindow.initBase();
+	
+	assert.equal(inWindow.getNumAvailableBytes(), 10);
+	
+	var binTree = new BinTree.BinTree();	
+	binTree.setType(4);
+	binTree.create(1 << 22, 1 << 12, 0x20, 275);
+	binTree.setStream(stream);
+	binTree.init();
 };
 
 var runAllTests = function() {
@@ -148,7 +175,7 @@ var runAllTests = function() {
 	testBitTreeEncoder(testSequenceSmall);
 	testBitTreeEncoder(testSequenceLarge);
 	
-	testBinTree();
+	testBinTree(testSequenceSmall);
 	
 	testEncoder();
 };

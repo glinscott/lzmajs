@@ -18,11 +18,11 @@ function InWindow() {
 			return;
 		}
 		for (;;) {
-			var size = -this._buffserOffset + this._blockSize - this._streamPos;
+			var size = -this._bufferOffset + this._blockSize - this._streamPos;
 			if (size === 0) {
 				return;
 			}
-			var numReadBytes = this._stream.Read(this._bufferBase, this._bufferOffset + this._streamPos, size);
+			var numReadBytes = this._stream.read(this._bufferBase, this._bufferOffset + this._streamPos, size);
 			if (numReadBytes === 0) {
 				this._posLimit = this._streamPos;
 				var pointerToPosition = this._bufferOffset + this._posLimit;
@@ -64,7 +64,7 @@ function InWindow() {
 		this._stream = null;
 	};
 	
-	this.init = function() {
+	this.initBase = function() {
 		this._bufferOffset = 0;
 		this._pos = 0;
 		this._streamPos = 0;
@@ -72,7 +72,7 @@ function InWindow() {
 		this.readBlock();
 	};
 	
-	this.movePos = function() {
+	this.movePosBase = function() {
 		this._pos++;
 		if (this._pos > this._posLimit) {
 			var pointerToPosition = this._bufferOffset + this._pos;
@@ -150,7 +150,7 @@ function BinTree() {
 
 	this.init = function() {
 		var i;
-		this.prototype.init();
+		this.initBase();
 		for (i = 0; i < this._hashSizeSum; i++) {
 			this._hash[i] = kEmptyHashValue;
 		}
@@ -162,7 +162,7 @@ function BinTree() {
 		if (++_this.cyclicBufferPos >= this._cyclicBufferSize) {
 			this._cyclicBufferPos = 0;
 		}
-		this.prototype.movePos();
+		this.movePosBase();
 		if (this._pos === kMaxValForNormalize) {
 			this.normalize();
 		}
