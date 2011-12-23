@@ -93,6 +93,10 @@ var testBitEncoder = function() {
 	assert.deepEqual(rangeEncoder.bytes, [ 0, 249, 223, 15, 188 ]);
 };
 
+var testCRC = function() {
+	assert.equal(BinTree.CRC.table.length, 256);
+};
+
 var testBitTreeEncoder = function(testSequence) {
 	// Test the BitTreeEncoder, using LZMA.js decompression for verification
 	var i;
@@ -176,16 +180,21 @@ var testBinTree = function(sequence) {
 	inWindow.initBase();
 	assert.equal(inWindow.getMatch(5, 4, 8), 4);
 	
+	// Test BinTree
+	stream = createEncoderStream(sequence);
 	var binTree = new BinTree.BinTree();
 	binTree.setType(4);
 	binTree.create(1 << 22, 1 << 12, 0x20, 275);
 	binTree.setStream(stream);
 	binTree.init();
+
+	assert.equal(binTree.getNumAvailableBytes(), sequence.length);
 };
 
 var runAllTests = function() {
 	testRangeCoder();
 	testBitEncoder();
+	testCRC();
 
 	var testSequenceSmall = [5, 112, 90, 8, 10, 153, 255, 0, 0, 15];
 	var testSequenceLarge = buildSequence(10000, 255);

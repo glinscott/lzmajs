@@ -1,3 +1,25 @@
+function CRCInit() {
+	table = [];
+	
+	var kPoly = 0xEDB88320, i, j, r;
+	for (i = 0; i < 256; i++) {
+		r = i;
+		for (j = 0; j < 8; j++) {
+			if ((r & 1) !== 0) {
+				r = (r >>> 1) ^ kPoly;
+			} else {
+				r >>>= 1;
+			}
+		}
+		table[i] = r;
+	}
+	
+	return table;
+}
+
+var CRC = function() { };
+CRC.prototype.table = CRCInit();
+
 function InWindow() {
 	this.moveBlock = function() {
 		var i;
@@ -134,7 +156,7 @@ function BinTree() {
 	var kNumHashDirectBytes = 0;
 	var kMinMatchCheck = 4;
 	var kFixHashSize = kHash2Size + kHash3Size;
-
+	
 	this.setType = function(numHashBytes) {
 		this.hashArray = numHashBytes > 2;
 		if (this.hashArray) {
@@ -230,11 +252,11 @@ function BinTree() {
 		hashValue = hash2Value = hash3Value = 0;
 		
 		if (this.hashArray) {
-			temp = CRC.Table[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
+			temp = CRC.table[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
 			hash2Value = temp & (kHash2Size - 1);
 			temp ^= _bufferBase[cur + 2] << 8;
 			hash3Value = temp & (kHash3Size - 1);
-			hashValue = (temp ^ (CRC.Table[this._bufferBase[cur + 1]] << 5)) & this._hashMask;
+			hashValue = (temp ^ (CRC.table[this._bufferBase[cur + 1]] << 5)) & this._hashMask;
 		} else {
 			hashValue = this._bufferBase[cur] ^ (this._bufferBase[cur + 1] << 8);
 		}
@@ -349,13 +371,13 @@ function BinTree() {
 			cur = this._bufferOffset + this._pos;
 			
 			if (this.hashArray) {
-				temp = CRC.Table[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
+				temp = CRC.table[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
 				hash2Value = temp & (kHash2Size - 1);
 				this._hash[hash2Value] = this._pos;
 				temp ^= this._bufferBase[cur + 2] << 8;
 				hash3Value = temp & (kHash3Size - 1);
 				this._hash[kHash3Offset + hash3Value] = this._pos;
-				hashValue = (temp ^ (CRC.Table[this._bufferBase[cur + 3]] << 5)) & this._hashMask;
+				hashValue = (temp ^ (CRC.table[this._bufferBase[cur + 3]] << 5)) & this._hashMask;
 			} else {
 				hashValue = this._bufferBase[cur] ^ (this._bufferBase[cur + 1] << 8);
 			}
@@ -437,5 +459,6 @@ function BinTree() {
 
 BinTree.prototype = new InWindow();
 
+exports.CRC = new CRC();
 exports.InWindow = InWindow;
 exports.BinTree = BinTree;
