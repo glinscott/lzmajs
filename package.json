@@ -1,7 +1,7 @@
 {
   "name": "lzmajs",
   "version": "0.9.0",
-  "author": "Gary Linscott, C. Scott Ananian",
+  "author": "Gary Linscott, Juan Mellado, C. Scott Ananian",
   "description": "a pure-JavaScript implementation of LZMA de/compression.",
   "keywords": ["lzma", "compression", "decompression"],
   "main": "main",
