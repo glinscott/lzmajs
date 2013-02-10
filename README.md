@@ -16,6 +16,12 @@ or
 volo add cscott/lzmajs
 ```
 
+This package uses
+[Typed Arrays](https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays)
+and so requires node.js >= 0.5.5.  Full browser compatibility table
+is available at [caniuse.com](http://caniuse.com/typedarrays); briefly:
+IE 10, Firefox 4, Chrome 7, or Safari 5.1.
+
 ## Usage
 
 There is an LZMA-JS compatible interface as well:
