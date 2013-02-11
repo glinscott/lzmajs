@@ -4,7 +4,6 @@ var fs = require('fs');
 
 var RangeCoder = lzmajs.RangeCoder;
 var BitEncoder = lzmajs.BitEncoder;
-var BinTree = lzmajs.BinTree;
 var Encoder = lzmajs.Encoder;
 var LzmaDecompress = lzmajs.LZMA;
 
@@ -193,13 +192,6 @@ describe('bit encoder', function() {
     it('should pass its tests', testBitEncoder);
 });
 
-var testCRC = function() {
-        assert.equal(BinTree.CRC.table.length, 256);
-};
-describe('crc', function() {
-    it('should have the proper length', testCRC);
-});
-
 var testBitTreeEncoder = function(testSequence) {
         // Test the BitTreeEncoder, using LZMA.js decompression for verification
         var i;
@@ -286,7 +278,7 @@ var testBinTree = function(sequence) {
 
         // Test BinTree
         stream = createEncoderStream(sequence);
-        var binTree = new BinTree.BinTree();
+        var binTree = new LZ.BinTree();
         binTree.setType(4);
         binTree.create(1 << 22, 1 << 12, 0x20, 275);
         binTree.setStream(stream);
