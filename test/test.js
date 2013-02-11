@@ -2,7 +2,9 @@ var assert = require('assert');
 var lzmajs = require('../');
 var fs = require('fs');
 
+var LZ = lzmajs.LZ;
 var RangeCoder = lzmajs.RangeCoder;
+
 var BitEncoder = lzmajs.BitEncoder;
 var Encoder = lzmajs.Encoder;
 var LzmaDecompress = lzmajs.LZMA;
@@ -29,64 +31,29 @@ var createInStream = function(data) {
           offset: 0,
           readByte: function(){
             return this.data[this.offset++];
+          },
+          read: function(buffer, bufOffset, length) {
+            var bytesRead = 0;
+            while (bytesRead < length && this.offset < this.data.length) {
+              buffer[bufOffset++] = this.data[this.offset++];
+              bytesRead++;
+            }
+            return bytesRead;
           }
         };
         return inStream;
 };
-
-var createEncoderStream = function(data) {
-        var stream = {
-                data: data,
-                offset: 0,
-                read: function(buffer, bufOffset, length) {
-                        var bytesRead = 0;
-                        while (bytesRead < length && this.offset < data.length) {
-                                buffer[bufOffset++] = this.data[this.offset++];
-                                bytesRead++;
-                        }
-                        return bytesRead;
-                }
-        };
-        return stream;
+var createOutStream = function() {
+  return {
+    pos: 0,
+    data: [],
+    writeByte: function(byte) { this.data[this.data.length] = byte; }
+  };
 };
-
-var testRangeCoder = function() {
-        var i;
-        var repeats = 3;
-        var encoder = new RangeCoder.Encoder();
-        for (i = 0; i < repeats; i++) {
-                encoder.encode(0,6,20);
-                encoder.encode(0,6,20);
-                encoder.encode(6,2,20);
-                encoder.encode(0,6,20);
-        }
-        encoder.encode(8,2,20);
-        encoder.finish();
-
-        var decoder = new RangeCoder.Decoder(encoder.bytes);
-        var inside = function(l, r, v) {
-                assert.ok(v >= l && v < r, v + ' not in ' + l + ',' + r);
-        };
-        for (i = 0; i < repeats; i++) {
-                inside(0, 6, decoder.getThreshold(20));
-                decoder.decode(0,6,20);
-                inside(0, 6, decoder.getThreshold(20));
-                decoder.decode(0,6,20);
-                inside(6, 8, decoder.getThreshold(20));
-                decoder.decode(6,2,20);
-                inside(0, 6, decoder.getThreshold(20));
-                decoder.decode(0,6,20);
-        }
-        inside(8, 10, decoder.getThreshold(20));
-};
-describe('range coder', function() {
-    it('should pass its tests', testRangeCoder);
-});
 
 describe('range coder', function() {
   var DEBUG = false;
   var testString = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  var RangeCoder = require('../lib/RangeCoder');
   var makeStream = function() {
     return {
       pos: 0,
@@ -115,8 +82,7 @@ describe('range coder', function() {
 
   var testDecodeBit = function(probsLength, makeContext, name) {
     var stream = makeStream();
-    var probs = [];
-    probs.length = probsLength;
+    var probs = RangeCoder.Encoder.initBitModels(null, probsLength);
 
     var enc = new RangeCoder.Encoder(stream);
     var i, j, c, bit, context;
@@ -175,39 +141,40 @@ describe('range coder', function() {
 });
 
 var testBitEncoder = function() {
-        // Simple test for the bit encoder
+        // Simple test for the range encoder
         var testSequence = [5, 1, 9, 8, 10, 15];
+        var out = createOutStream();
         var i;
 
-        var bitEncoder = new BitEncoder.BitEncoder();
-        var rangeEncoder = new RangeCoder.Encoder();
-        bitEncoder.init();
+        var prob = RangeCoder.Encoder.initBitModels(null, 1);
+        var rangeEncoder = new RangeCoder.Encoder(out);
         for (i = 0; i < testSequence.length; i++) {
-                bitEncoder.encode(rangeEncoder, testSequence[i]);
+          rangeEncoder.encode(prob, 0, testSequence[i]?1:0);
         }
-        rangeEncoder.finish();
-        assert.deepEqual(rangeEncoder.bytes, [ 0, 249, 223, 15, 188 ]);
+        rangeEncoder.flushData();
+        assert.deepEqual(out.data, [ 0, 249, 223, 15, 188 ]);
 };
-describe('bit encoder', function() {
-    it('should pass its tests', testBitEncoder);
+describe('range encoder', function() {
+    it('should pass a simple test', testBitEncoder);
 });
 
 var testBitTreeEncoder = function(testSequence) {
         // Test the BitTreeEncoder, using LZMA.js decompression for verification
+        var out = createOutStream();
         var i;
 
-        var rangeEncoder = new RangeCoder.Encoder();
-        var bitTreeEncoder = new BitEncoder.BitTreeEncoder(8);
+        var rangeEncoder = new RangeCoder.Encoder(out);
+        var bitTreeEncoder = new RangeCoder.BitTreeEncoder(8);
         bitTreeEncoder.init();
         for (i = 0; i < testSequence.length; i++) {
                 bitTreeEncoder.encode(rangeEncoder, testSequence[i]);
         }
-        rangeEncoder.finish();
+        rangeEncoder.flushData();
 
-        var bitTreeDecoder = new LzmaDecompress.LZMA.BitTreeDecoder(8);
+        var bitTreeDecoder = new RangeCoder.BitTreeDecoder(8);
         bitTreeDecoder.init();
-        var rangeDecoder = new LzmaDecompress.LZMA.RangeDecoder();
-        rangeDecoder.setStream(createInStream(rangeEncoder.bytes));
+        var rangeDecoder = new RangeCoder.Decoder();
+        rangeDecoder.setStream(createInStream(out.data));
         rangeDecoder.init();
 
         var result = [];
@@ -229,7 +196,8 @@ var buildSequence = function(length, maxVal) {
 };
 
 var testEncoder = function() {
-        var rangeEncoder = new RangeCoder.Encoder();
+        var out = createOutStream();
+        var rangeEncoder = new RangeCoder.Encoder(out);
         var encoder = new Encoder.Encoder();
         encoder.create();
         encoder.init();
@@ -245,15 +213,14 @@ var testEncoder = function() {
         lenEncoder.encode(rangeEncoder, 1, 0);
         lenEncoder.encode(rangeEncoder, 20, 0);
         lenEncoder.encode(rangeEncoder, 199, 0);
-        rangeEncoder.finish();
+        rangeEncoder.flushData();
 
         var lenPriceTableEncoder = new encoder.LenPriceTableEncoder();
         lenPriceTableEncoder.init();
 };
 
 var testBinTree = function(sequence) {
-        var LZ = require('../lib/LZ');
-        var stream = createEncoderStream(sequence);
+        var stream = createInStream(sequence);
 
         var blockSize = (1 << 12) + 0x20 + 275;
         var inWindow = new LZ.InWindow();
@@ -272,12 +239,12 @@ var testBinTree = function(sequence) {
 
         // Test sequence matching
         var testSequenceRepeats = [0, 1, 2, 3, 5, 0, 1, 2, 3, 4];
-        inWindow.setStream(createEncoderStream(testSequenceRepeats));
+        inWindow.setStream(createInStream(testSequenceRepeats));
         inWindow.init();
         assert.equal(inWindow.getMatch(5, 4, 8), 4);
 
         // Test BinTree
-        stream = createEncoderStream(sequence);
+        stream = createInStream(sequence);
         var binTree = new LZ.BinTree();
         binTree.setType(4);
         binTree.create(1 << 22, 1 << 12, 0x20, 275);
