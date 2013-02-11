@@ -3,10 +3,9 @@ var lzmajs = require('../');
 var fs = require('fs');
 
 var LZ = lzmajs.LZ;
+var LZMA = lzmajs.LZMA;
 var RangeCoder = lzmajs.RangeCoder;
 var Util = lzmajs.Util;
-
-var Encoder = lzmajs.Encoder;
 
 var min = function(a, b) {
         return a < b ? a : b;
@@ -197,7 +196,7 @@ var buildSequence = function(length, maxVal) {
 var testEncoder = function() {
         var out = createOutStream();
         var rangeEncoder = new RangeCoder.Encoder(out);
-        var encoder = new Encoder.Encoder();
+        var encoder = new LZMA.Encoder();
         encoder.create();
         encoder.init();
 
