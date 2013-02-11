@@ -7,7 +7,7 @@
   "main": "main",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cscott/lzmajs.git"
+    "url": "https://github.com/cscott/lzma-purejs.git"
   },
   "license": "BSD",
   "bin": {
