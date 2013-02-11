@@ -84,6 +84,97 @@ describe('range coder', function() {
     it('should pass its tests', testRangeCoder);
 });
 
+describe('range coder', function() {
+  var DEBUG = false;
+  var testString = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var RangeCoder = require('../lib/RangeCoder');
+  var makeStream = function() {
+    return {
+      pos: 0,
+      data: [],
+      writeByte: function(byte) { this.data[this.data.length] = byte; },
+      readByte: function() { return this.data[this.pos++]; }
+    };
+  };
+  it('encodeDirectBits->decodeDirectBits should be the identity', function() {
+    var stream = makeStream();
+    var enc = new RangeCoder.Encoder(stream);
+    var i;
+    for (i=0; i<testString.length; i++) {
+      enc.encodeDirectBits(testString.charCodeAt(i), 16);
+    }
+    enc.flushData();
+    // show output
+    if (DEBUG)
+      console.log(stream.data.length, new Buffer(stream.data).toString('hex'));
+    // now decode this.
+    var dec = new RangeCoder.Decoder(stream);
+    for (i=0; i<testString.length; i++) {
+      assert.equal(testString.charCodeAt(i), dec.decodeDirectBits(16));
+    }
+  });
+
+  var testDecodeBit = function(probsLength, makeContext, name) {
+    var stream = makeStream();
+    var probs = [];
+    probs.length = probsLength;
+
+    var enc = new RangeCoder.Encoder(stream);
+    var i, j, c, bit, context;
+    RangeCoder.Encoder.initBitModels(probs);
+    context = 0;
+    for (i=0; i<testString.length; i++) {
+      c = testString.charCodeAt(i);
+      for (j=15; j>=0; j--) {
+        bit = (c >> j) & 1; // big-endian
+        enc.encode(probs, context, bit);
+        context = makeContext(context, bit, j);
+      }
+    }
+    enc.flushData();
+
+    // show output
+    if (DEBUG)
+      console.log(name||'', stream.data.length,
+                  new Buffer(stream.data).toString('hex'));
+
+    // now decode this.
+    var dec = new RangeCoder.Decoder(stream);
+    RangeCoder.Encoder.initBitModels(probs);
+    context = 0;
+    for (i=0; i<testString.length; i++) {
+      c = 0;
+      for (j=15; j>=0; j--) {
+        bit = dec.decodeBit(probs, context);
+        context = makeContext(context, bit, j);
+        c = (c<<1) | bit;
+      }
+      assert.equal(testString.charCodeAt(i), c);
+    }
+  };
+
+  it('encode->decodeBit (single context)', function() {
+    testDecodeBit(1, function(){return 0;}, 'no context');
+  });
+  // running context
+  var makeRunningContextTest = function(contextLength) {
+    return function() {
+      testDecodeBit(1<<contextLength, function(context, bit, _) {
+        return ((context<<1) | bit) & ((1<<contextLength)-1);
+      }, contextLength+'-bit context');
+    };
+  };
+  var contextLength;
+  for (contextLength=1; contextLength <= 16; contextLength++) {
+    it('encode->decodeBit ('+contextLength+'-bit context)',
+       makeRunningContextTest(contextLength));
+  }
+  // context based on bit position
+  it('encode->decodeBit (bit-position-based context)', function() {
+    testDecodeBit(16, function(_,__,pos) { return pos; }, 'bitpos');
+  });
+});
+
 var testBitEncoder = function() {
         // Simple test for the bit encoder
         var testSequence = [5, 1, 9, 8, 10, 15];
