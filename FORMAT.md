@@ -110,10 +110,9 @@ format is the same. (This package doesn't support lzma86 de/compression.)
 ## Range Coding notes
 
 I recommend reading
-http://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Markov_chain_algorithm
-and
-http://en.wikipedia.org/wiki/Range_encoding
-to understand `RangeCoder.Encoder` and `RangeCoder.Decoder`.
-The source code to the RangeEncoder in [XZ](http://en.wikipedia.org/wiki/Xz)
-is also useful reading:
-http://git.tukaani.org/?p=xz-java.git;a=blob;f=src/org/tukaani/xz/rangecoder/RangeEncoder.java
+[Lempel-Ziv-Markov chain algorithm](http://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Markov_chain_algorithm)
+and [Range encoding](http://en.wikipedia.org/wiki/Range_encoding) in
+Wikipedia to understand `RangeCoder.Encoder` and `RangeCoder.Decoder`.
+The
+[source code to the RangeEncoder](http://git.tukaani.org/?p=xz-java.git;a=blob;f=src/org/tukaani/xz/rangecoder/RangeEncoder.java)
+in [XZ](http://en.wikipedia.org/wiki/Xz) is also useful to read.
