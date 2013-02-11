@@ -4,10 +4,9 @@ var fs = require('fs');
 
 var LZ = lzmajs.LZ;
 var RangeCoder = lzmajs.RangeCoder;
+var Util = lzmajs.Util;
 
-var BitEncoder = lzmajs.BitEncoder;
 var Encoder = lzmajs.Encoder;
-var LzmaDecompress = lzmajs.LZMA;
 
 var min = function(a, b) {
         return a < b ? a : b;
