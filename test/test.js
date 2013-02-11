@@ -200,20 +200,20 @@ var testEncoder = function() {
         encoder.create();
         encoder.init();
 
-        var literalEncoder = new encoder.LiteralEncoder();
+        var literalEncoder = new LZMA.Encoder.LiteralEncoder();
         literalEncoder.create(2, 3);
         literalEncoder.init();
         var subCoder = literalEncoder.getSubCoder(5, 11);
         assert.ok(subCoder !== null);
 
-        var lenEncoder = new encoder.LenEncoder();
+        var lenEncoder = new LZMA.Encoder.LenEncoder();
         lenEncoder.init(5);
         lenEncoder.encode(rangeEncoder, 1, 0);
         lenEncoder.encode(rangeEncoder, 20, 0);
         lenEncoder.encode(rangeEncoder, 199, 0);
         rangeEncoder.flushData();
 
-        var lenPriceTableEncoder = new encoder.LenPriceTableEncoder();
+        var lenPriceTableEncoder = new LZMA.Encoder.LenPriceTableEncoder();
         lenPriceTableEncoder.init();
 };
 
