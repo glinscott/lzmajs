@@ -106,3 +106,14 @@ The `.lzma86` format adds an optional extra filter to better compress x86
 executables.  It begins with a one-byte prefix, which is `0` for standard LZMA
 and `1` to indicate that the x86 filter is applied.  The remainder of the
 format is the same. (This package doesn't support lzma86 de/compression.)
+
+## Range Coding notes
+
+I recommend reading
+http://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Markov_chain_algorithm
+and
+http://en.wikipedia.org/wiki/Range_encoding
+to understand `RangeCoder.Encoder` and `RangeCoder.Decoder`.
+The source code to the RangeEncoder in [XZ](http://en.wikipedia.org/wiki/Xz)
+is also useful reading:
+http://git.tukaani.org/?p=xz-java.git;a=blob;f=src/org/tukaani/xz/rangecoder/RangeEncoder.java
