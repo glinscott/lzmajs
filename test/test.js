@@ -260,27 +260,28 @@ var testEncoder = function() {
 };
 
 var testBinTree = function(sequence) {
+        var LZ = require('../lib/LZ');
         var stream = createEncoderStream(sequence);
 
         var blockSize = (1 << 12) + 0x20 + 275;
-        var inWindow = new BinTree.InWindow();
-        inWindow.createBase(1 << 12, 0x20, 275);
+        var inWindow = new LZ.InWindow();
+        inWindow.create(1 << 12, 0x20, 275);
         inWindow.setStream(stream);
-        inWindow.initBase();
+        inWindow.init();
 
         // Test basics
         var remaining = min(sequence.length, blockSize);
         assert.equal(inWindow.getNumAvailableBytes(), remaining);
         assert.equal(inWindow.getIndexByte(0), sequence[0]);
         assert.equal(inWindow.getIndexByte(1), sequence[1]);
-        inWindow.movePosBase();
+        inWindow.movePos();
         assert.equal(inWindow.getNumAvailableBytes(), remaining - 1);
         assert.equal(inWindow.getIndexByte(0), sequence[1]);
 
         // Test sequence matching
         var testSequenceRepeats = [0, 1, 2, 3, 5, 0, 1, 2, 3, 4];
         inWindow.setStream(createEncoderStream(testSequenceRepeats));
-        inWindow.initBase();
+        inWindow.init();
         assert.equal(inWindow.getMatch(5, 4, 8), 4);
 
         // Test BinTree
