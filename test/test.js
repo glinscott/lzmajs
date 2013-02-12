@@ -239,7 +239,7 @@ var testBinTree = function(sequence) {
         var testSequenceRepeats = [0, 1, 2, 3, 5, 0, 1, 2, 3, 4];
         inWindow.setStream(createInStream(testSequenceRepeats));
         inWindow.init();
-        assert.equal(inWindow.getMatch(5, 4, 8), 4);
+        assert.equal(inWindow.getMatchLen(5, 4, 8), 4);
 
         // Test BinTree
         stream = createInStream(sequence);

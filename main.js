@@ -9,6 +9,8 @@ define(['./lib/freeze', './lib/LZ', './lib/LZMA', './lib/RangeCoder', './lib/Uti
         RangeCoder: RangeCoder,
         Util: Util,
         // utility methods
+        compress: Util.compress,
+        compressFile: Util.compressFile,
         decompress: Util.decompress,
         decompressFile: Util.decompressFile
   });
