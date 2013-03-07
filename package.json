@@ -2,7 +2,7 @@
   "name": "lzma-purejs",
   "version": "0.9.0",
   "author": "Gary Linscott, Juan Mellado, C. Scott Ananian",
-  "description": "a pure-JavaScript implementation of LZMA de/compression, for node.js, volo, and the browser.",
+  "description": "pure JavaScript LZMA de/compression, for node.js, volo, and the browser.",
   "keywords": ["lzma", "compression", "decompression"],
   "main": "main",
   "repository": {
