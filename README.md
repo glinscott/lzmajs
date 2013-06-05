@@ -1,5 +1,7 @@
 # lzmajs
 
+[![Build Status](https://travis-ci.org/cscott/lzma-purejs.png)](https://travis-ci.org/cscott/lzma-purejs)
+
 `lzmajs` is a fast pure-JavaScript implementation of LZMA
 compression/decompression.  It was originally written by Gary Linscott
 based on decompression code by Juan Mellado and the 7-Zip SDK.
