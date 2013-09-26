@@ -98,6 +98,11 @@ value will be a `Uint8Array`.
 If you provide the second argument, it must be a "stream", implementing
 the `writeByte` method.
 
+## Asynchronous streaming
+
+See the `test/stream.js` for sample code using the `fibers` package
+to implement an asynchronous de/compression interface.
+
 ## Related projects
 
 * http://code.google.com/p/js-lzma Decompression code by Juan Mellado
