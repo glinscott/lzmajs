@@ -5,8 +5,10 @@
 `lzmajs` is a fast pure-JavaScript implementation of LZMA
 compression/decompression.  It was originally written by Gary Linscott
 based on decompression code by Juan Mellado and the 7-Zip SDK.
-C. Scott Ananian cleaned up the source code and packaged it for `node`
-and `volo`.
+C. Scott Ananian started by cleaning up the source code and packaging
+it for `node` and `volo`, then moved on to more extensive refactoring
+and validation against the upstream Java implementation, adding
+test cases, etc.
 
 ## How to install
 
