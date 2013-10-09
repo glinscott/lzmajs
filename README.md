@@ -1,6 +1,6 @@
 # lzmajs
 
-[![Build Status](https://travis-ci.org/cscott/lzma-purejs.png)](https://travis-ci.org/cscott/lzma-purejs)
+[![Build Status][1]][2] [![dependency status][3]][4] [![dev dependency status][5]][6]
 
 `lzmajs` is a fast pure-JavaScript implementation of LZMA
 compression/decompression.  It was originally written by Gary Linscott
@@ -137,3 +137,10 @@ to implement an asynchronous de/compression interface.
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 > THE SOFTWARE.
+
+[1]: https://travis-ci.org/cscott/lzma-purejs.png
+[2]: https://travis-ci.org/cscott/lzma-purejs
+[3]: https://david-dm.org/cscott/lzma-purejs.png
+[4]: https://david-dm.org/cscott/lzma-purejs
+[5]: https://david-dm.org/cscott/lzma-purejs/dev-status.png
+[6]: https://david-dm.org/cscott/lzma-purejs#info=devDependencies
