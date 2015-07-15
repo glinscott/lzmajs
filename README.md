@@ -47,10 +47,10 @@ From JavaScript:
 ```
 var lzmajs = require('lzma-purejs');
 var data = new Buffer('Example data', 'utf8');
-var compressed = lzma.compressFile(data);
-var uncompressed = lzma.uncompressFile(compressed);
+var compressed = lzmajs.compressFile(data);
+var decompressed = lzmajs.decompressFile(compressed);
 // convert from array back to string
-var data2 = new Buffer(uncompressed).toString('utf8');
+var data2 = new Buffer(decompressed).toString('utf8');
 console.log(data2);
 ```
 There is a streaming interface as well.
